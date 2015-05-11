@@ -403,18 +403,13 @@ class XBee
          */
         RadioStatus start_node_discovery();
 
-#define XBEEZB_ND_OPTION_APPEND_DD          (1 << 0)
-#define XBEEZB_ND_OPTION_SELF_RESPONSE      (1 << 1)
-#define XBEE802_ND_OPTION_SELF_RESPONSE     (1 << 0)
-
         /** config_node_discovery - configures the node discovery operation
          *
          *  @param timeout_ms max allowed time for devices in the network to answer
          *                    to the Node Discovery request
          *  @param  options node discovery options (flags)
-         *              XBEE802_ND_OPTION_SELF_RESPONSE - to allow the module self responding (802.15.4 only)
-         *              XBEEZB_ND_OPTION_SELF_RESPONSE - to allow the module self responding (ZigBee only)
-         *              XBEEZB_ND_OPTION_APPEND_DD - to append the DD value to the response (ZigBee only)
+         *              ND_OPTION_APPEND_DD - to append the DD value to the response
+         *              ND_OPTION_SELF_RESPONSE - to allow the module self responding
          *  @returns
          *     Success if the operation was successful,
          *     Failure otherwise
@@ -769,7 +764,8 @@ class XBee
          */
         RadioStatus get_iosample(const RemoteXBee& remote, uint8_t * const io_sample, uint16_t * const len);
 
-        void _get_remote_node_by_id(const char * const node_id, uint64_t * addr64, uint16_t * addr16);
+        /** serial hardware flow control selected by the user (RTSCTS, RTS,CTS) */
+        SerialBase::Flow _serial_flow_type;
 
         /** Operating mode of the module (API1, API2,...) */
         RadioMode   _mode;

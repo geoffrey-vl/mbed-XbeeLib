@@ -21,6 +21,9 @@
 
 namespace XBeeLib {
 
+#define ND_OPTION_APPEND_DD         (1 << 0)
+#define ND_OPTION_SELF_RESPONSE     (1 << 1)
+
 /** Class for XBee ZigBee modules, derived from XBee */
 class XBeeZB : public XBee
 {
@@ -337,13 +340,23 @@ class XBeeZB : public XBee
          */
         bool is_joined();
         
-        /** get_remote_node_by_id - searches for a device in the network with the specified Node Identifier.
+        /** get_device_by_id - finds and retrieves a pointer to the remote device in 
+         *                     the network whose device id matches with the parameter
          *
          *  @param node_id node id of the device we are looking for
-         *  @returns a RemoteXBeeZB with the 16-bit and 64-bit address of the remote device whose node id matches with the parameter.
-         *  If node is not found, the returned object will have invalid addresses (RemoteXBeeZB::is_valid() will return false).
+         *  @returns a pointer to the remote object device created or NULL if the device
+         *           was not found
          */
-        RemoteXBeeZB get_remote_node_by_id(const char * const node_id);
+        XBeeZB * get_device_by_id(const char * const node_id);
+
+        /** get_device_by_id - searches for a device in the network with the especified 
+         *                     node id, if found, returns its 64 bit address
+         *
+         *  @param node_id node id of the device we are looking for
+         *  @returns an object with the 64 bit address of the remote device whose node id 
+         *           matches with the parameter
+         */
+        RadioStatus get_device_by_id(const char * const node_id, uint64_t * const dev_addr);
 
         /* Allow using XBee::set_param() methods for local radio from this class */
         using XBee::set_param;

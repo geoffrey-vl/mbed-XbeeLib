@@ -30,12 +30,12 @@ FrameBuffer XBee::_framebuf;
 
 /* Class constructor */
 XBee::XBee(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
-    _mode(ModeUnknown), _type(Unknown), _hw_version(0), _fw_version(0), _timeout_ms(SYNC_OPS_TIMEOUT_MS), _dev_addr64(ADDR64_UNASSIGNED), _dev_addr16(ADDR16_UNKNOWN),
+    _mode(ModeUnknown), _type(Unknown), _timeout_ms(SYNC_OPS_TIMEOUT_MS), _hw_version(0), _fw_version(0), _dev_addr64(ADDR64_UNASSIGNED), _dev_addr16(ADDR16_UNKNOWN),
     _reset(NULL), _tx_options(0), _bc_radius(0), _hw_reset_cnt(0), _wd_reset_cnt(0), _reset_timeout(0), _modem_status_handler(NULL), _modem_status(AtCmdFrame::HwReset), _initializing(true), _pm_mode(SleepDisabled)
 {
 
     if (reset != NC) {
-        _reset = new DigitalOut(reset);
+        _reset = new DigitalOut(reset, 1);
     }
 #if defined(ENABLE_PM_SUPPORT)
     _on_sleep = NULL;
@@ -44,9 +44,25 @@ XBee::XBee(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int 
 
     _uart = new RawSerial(tx, rx);
     _uart->baud(baud);
+
+    _serial_flow_type = SerialBase::Disabled;
 #if defined(DEVICE_SERIAL_FC)
     if (rts != NC && cts != NC) {
-        _uart->set_flow_control(SerialBase::RTSCTS, rts, cts);
+#if !(defined AVOID_USING_RTS)
+        _serial_flow_type = SerialBase::RTSCTS;
+        _uart->set_flow_control(_serial_flow_type, rts, cts);        
+#else
+        _serial_flow_type = SerialBase::CTS;
+        _uart->set_flow_control(_serial_flow_type, cts);
+#endif
+    }
+    else if (rts != NC && cts == NC) {
+        _serial_flow_type = SerialBase::RTS;
+        _uart->set_flow_control(_serial_flow_type, rts);
+    }
+    else if (rts == NC && cts != NC) {
+        _serial_flow_type = SerialBase::CTS;
+        _uart->set_flow_control(_serial_flow_type, cts);
     }
 #endif
     /* Enable the reception of bytes on the serial interface by providing a cb */
@@ -288,7 +304,6 @@ void XBee::uart_read_cb(void)
  * object has been completed and the virtual functions filled */
 void XBee::radio_status_update(AtCmdFrame::ModemStatus modem_status)
 {
-    UNUSED_PARAMETER(modem_status);
 }
 
 void XBee::set_timeout(uint16_t timeout_ms)
@@ -638,8 +653,6 @@ RadioStatus XBee::get_pm_mode(PmMode *mode)
 
 RadioStatus XBee::config_pm_timing(uint32_t before_sleep_ms, uint32_t total_sleep_period_ms)
 {
-    UNUSED_PARAMETER(before_sleep_ms);
-    UNUSED_PARAMETER(total_sleep_period_ms);
     return Success;
 }
 

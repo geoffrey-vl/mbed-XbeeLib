@@ -153,13 +153,29 @@ class XBee802 : public XBee
          */
         virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len);
 
-        /** get_remote_node_by_id - searches for a device in the network with the specified Node Identifier.
+        /** send_data - sends data to a remote device waiting for the packet
+         *                   answer with the result of the operation
          *
-         *  @param node_id node id of the device we are looking for
-         *  @returns a RemoteXBee802 with the 16-bit and 64-bit address of the remote device whose node id matches with the parameter.
-         *  If node is not found, the returned object will have invalid addresses (RemoteXBee802::is_valid() will return false).
+         *  @param remote64 64bit address of the remote device
+         *  @param data pointer to the data that will be sent
+         *  @param len number of bytes that will be transmitted
+         *  @returns the result of the data transfer
+         *     TxStatusSuccess if the operation was successful,
+         *     the error code otherwise
          */
-        RemoteXBee802 get_remote_node_by_id(const char * const node_id);
+        TxStatus send_data(uint64_t remote64, const uint8_t *const data, uint16_t len);
+
+        /** send_data - sends data to a remote device waiting for the packet
+         *                   answer with the result of the operation
+         *
+         *  @param addr16 16bit address of the remote device
+         *  @param data pointer to the data that will be sent
+         *  @param len number of bytes that will be transmitted
+         *  @returns the result of the data transfer
+         *     TxStatusSuccess if the operation was successful,
+         *     the error code otherwise
+         */
+        TxStatus send_data(uint16_t addr16, const uint8_t *const data, uint16_t len);
 
         /* Allow using XBee::set_param() methods for local radio from this class */
         using XBee::set_param;

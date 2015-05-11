@@ -115,7 +115,6 @@ class RemoteXBee802 : public RemoteXBee
     protected:
 
         friend FH_NodeDiscovery802;
-        friend class XBee802;
 
         /** Class constructor for a 802.15.4 remote device (connected wirelessly) for which both the 64-bit and 16-bit addresses are known.
          * This constructor is only used by FH_NodeDiscovery802 class.

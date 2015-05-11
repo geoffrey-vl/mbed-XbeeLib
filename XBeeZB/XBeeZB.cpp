@@ -334,14 +334,6 @@ TxStatus XBeeZB::send_data_to_coordinator(const uint8_t *const data, uint16_t le
     return send_data(&frame);
 }
 
-RemoteXBeeZB XBeeZB::get_remote_node_by_id(const char * const node_id)
-{
-    uint64_t addr64;
-    uint16_t addr16;
-    _get_remote_node_by_id(node_id, &addr64, &addr16);
-    return RemoteXBeeZB(addr64, addr16);
-}
-
 NetworkRole XBeeZB::get_network_role()
 {
     return _nw_role;
@@ -407,6 +399,37 @@ void XBeeZB::unregister_io_sample_cb()
         delete _io_data_handler;
         _io_data_handler = NULL; /* as delete does not set to NULL */
     }
+}
+
+XBeeZB * XBeeZB::get_device_by_id(const char * const node_id)
+{
+    return NULL;
+}
+
+RadioStatus XBeeZB::get_device_by_id(const char * const node_id, uint64_t * const dev_addr)
+{
+    AtCmdFrame::AtCmdResp cmdresp;
+    uint32_t dh, dl;
+    
+    if (strlen(node_id) > MAX_NI_PARAM_LEN)
+        return Failure;
+
+    cmdresp = set_param("DN", (const uint8_t *)node_id, strlen(node_id));
+    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+        return Failure;
+    
+    /* Read the address of the remote device from the DH, DL parameters */
+    cmdresp = get_param("DH", &dh);
+    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+        return Failure;
+    
+    cmdresp = get_param("DL", &dl);
+    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+        return Failure;
+    
+    *dev_addr = UINT64(dh, dl);
+    
+    return Success;
 }
 
 AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * const param, uint32_t * const data)
