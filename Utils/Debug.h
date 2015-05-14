@@ -26,11 +26,13 @@
 
 #if defined(ENABLE_ASSERTIONS)
 #include "mbed.h"
+#if !(defined assert)
 #define assert(expr)            if (!(expr)) {                                      \
                                     digi_log(LogLevelNone, "Assertion failed: %s, file %s, line %d\n", \
                                          #expr, __FILE__, __LINE__);                \
                                     mbed_die();                                     \
                                 }
+#endif
 #else
 #define assert(expr)
 #endif

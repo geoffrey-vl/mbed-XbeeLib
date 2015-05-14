@@ -160,16 +160,39 @@ TxStatus XBee802::send_data(const RemoteXBee& remote, const uint8_t *const data,
     return TxStatusInvalidAddr;
 }
 
-TxStatus XBee802::send_data(uint64_t remote64, const uint8_t *const data, uint16_t len)
+TxStatus XBee802::send_data_asyncr(const RemoteXBee& remote, const uint8_t *const data, uint16_t len)
 {
-    TxFrame802 frame = TxFrame802(remote64, _tx_options, data, len);
-    return send_data(&frame);
+    if (remote.is_valid_addr64b()) {
+        const uint64_t remote64 =  remote.get_addr64();
+
+        digi_log(LogLevelDebug, "send_data ADDR64: %08x:%08x\r\n", UINT64_HI32(remote64), UINT64_LO32(remote64));
+
+        TxFrame802 frame = TxFrame802(remote64, _tx_options, data, len);
+
+        send_api_frame(&frame);
+        return TxStatusSuccess;
+    }
+
+    if (remote.is_valid_addr16b()) {
+        const uint16_t remote16 = remote.get_addr16();
+
+        digi_log(LogLevelDebug, "send_data ADDR16: %04x\r\n", remote16);
+
+        TxFrame802 frame = TxFrame802(remote16, _tx_options, data, len);
+
+        send_api_frame(&frame);
+        return TxStatusSuccess;
+    }
+
+    return TxStatusInvalidAddr;
 }
 
-TxStatus XBee802::send_data(uint16_t addr16, const uint8_t *const data, uint16_t len)
+RemoteXBee802 XBee802::get_remote_node_by_id(const char * const node_id)
 {
-    TxFrame802 frame = TxFrame802(addr16, _tx_options, data, len);
-    return send_data(&frame);
+    uint64_t addr64;
+    uint16_t addr16;
+    _get_remote_node_by_id(node_id, &addr64, &addr16);
+    return RemoteXBee802(addr64, addr16);
 }
 
 void XBee802::register_node_discovery_cb(node_discovery_802_cb_t function)

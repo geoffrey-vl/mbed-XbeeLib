@@ -176,6 +176,65 @@ RadioStatus XBee::start_node_discovery()
     return Success;
 }
 
+void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const addr64, uint16_t * const addr16)
+{
+    *addr64 = ADDR64_UNASSIGNED;
+    *addr16 = ADDR16_UNKNOWN;
+    if (node_id == NULL) {
+        return;
+    }
+    const size_t node_id_len = strlen(node_id);
+    if (node_id_len == 0 || node_id_len > MAX_NI_PARAM_LEN) {
+        return;
+    }
+
+    const uint16_t old_timeout = _timeout_ms;
+
+    uint32_t nd_timeout_100msec;
+    const AtCmdFrame::AtCmdResp nt_resp = get_param("NT", &nd_timeout_100msec);
+    if (nt_resp != AtCmdFrame::AtCmdRespOk) {
+        _timeout_ms = 10000;
+    } else {
+        _timeout_ms = (uint16_t)nd_timeout_100msec * 100 + 1000;
+    }
+
+    const AtCmdFrame::AtCmdResp cmdresp = set_param("ND", (const uint8_t *)node_id, strlen(node_id));
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
+        _timeout_ms = old_timeout;
+        return;
+    }
+
+    const int nd_start_time = _timer.read_ms();
+    const int nd_end_time = nd_start_time + _timeout_ms;
+
+    AtCmdFrame atnd_frame = AtCmdFrame("ND", (const uint8_t *)node_id, strlen(node_id));
+    send_api_frame(&atnd_frame);
+
+    ApiFrame * const resp_frame = get_this_api_frame(atnd_frame.get_frame_id(), ApiFrame::AtCmdResp);
+    _timeout_ms = old_timeout;
+
+    while (_timer.read_ms() < nd_end_time) {
+        wait_ms(10);
+    }
+
+    if (resp_frame == NULL) {
+        digi_log(LogLevelWarning, "XBeeZB::get_remote_node_by_id timeout when waiting for ATND response");
+        return;
+    }
+
+    const AtCmdFrame::AtCmdResp resp = (AtCmdFrame::AtCmdResp)resp_frame->get_data_at(ATCMD_RESP_STATUS_OFFSET);
+    if (resp != AtCmdFrame::AtCmdRespOk) {
+        digi_log(LogLevelWarning, "send_at_cmd bad response: 0x%x\r\n", resp);
+        _framebuf.free_frame(resp_frame);
+        return;
+    }
+
+    rmemcpy((uint8_t *)addr16, resp_frame->get_data() + ATCMD_RESP_DATA_OFFSET, sizeof *addr16);
+    rmemcpy((uint8_t *)addr64, resp_frame->get_data() + ATCMD_RESP_DATA_OFFSET + sizeof *addr16, sizeof *addr64);
+    _framebuf.free_frame(resp_frame);
+    return;
+}
+
 RadioStatus XBee::config_node_discovery(uint16_t timeout_ms, uint8_t options)
 {
     AtCmdFrame::AtCmdResp cmdresp;

@@ -23,6 +23,8 @@
 #define UINT64_HI32(u64)     (uint32_t)((u64) >> 32)
 #define UINT64_LO32(u64)     (uint32_t)((u64) & 0xFFFFFFFF)
 
+#define UNUSED_PARAMETER(a)  ((void)(a))
+
 /** rmemcpy - like memcpy but copies the bytes in reverse order
  *
  *  @param dest pointer with the destination address

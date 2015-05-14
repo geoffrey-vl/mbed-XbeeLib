@@ -21,9 +21,6 @@
 
 namespace XBeeLib {
 
-#define ND_OPTION_APPEND_DD         (1 << 0)
-#define ND_OPTION_SELF_RESPONSE     (1 << 1)
-
 /** Class for XBee ZigBee modules, derived from XBee */
 class XBeeZB : public XBee
 {
@@ -255,33 +252,16 @@ class XBeeZB : public XBee
          */
         virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len);
 
-        /** send_data - sends data to a remote device waiting for the packet
-         *                   answer with the result of the operation
+        /** send_data_asyncr - sends data to a remote device not waiting for the packet answer
          *
-         *  @param remote64 64bit address of the remote device
+         *  @param remote remote device
          *  @param data pointer to the data that will be sent
          *  @param len number of bytes that will be transmitted
          *  @returns the result of the data transfer
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
-        TxStatus send_data(uint64_t remote64, const uint8_t *const data, uint16_t len);
-
-        /** send_data - sends data to a remote device waiting for the packet
-         *                   answer with the result of the operation. The main difference
-         *                   with the previous method is that includes the network address
-         *                   being more effective, not being neccesary to discover it
-         *
-         *  @param remote64 64bit address of the remote device
-         *  @param remote16 16bit network address of the remote device
-         *  @param data pointer to the data that will be sent
-         *  @param len number of bytes that will be transmitted
-         *  @returns the result of the data transfer
-         *     TxStatusSuccess if the operation was successful,
-         *     the error code otherwise
-         */
-        TxStatus send_data(uint64_t remote64, uint16_t remote16,
-                                const uint8_t *const data, uint16_t len);
+        TxStatus send_data_asyncr(const RemoteXBee& remote, const uint8_t *const data, uint16_t len);
                                 
         /** send_data - sends data to a remote device waiting for the packet
          *                   answer with the result of the operation. This method uses
@@ -303,27 +283,6 @@ class XBeeZB : public XBee
                                 uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
                                 const uint8_t *const data, uint16_t len);
 
-        /** send_data - sends data to a remote device waiting for the packet
-         *                   answer with the result of the operation. This method uses
-         *                   the explicit addressing frame, allowing to use source and
-         *                   destination end points and cluster and profile IDs
-         *
-         *  @param remote64 64bit address of the remote device
-         *  @param remote16 16bit network address of the remote device
-         *  @param source_ep source end point
-         *  @param dest_ep destination end point
-         *  @param cluster_id cluster ID
-         *  @param profile_id profile ID
-         *  @param data pointer to the data that will be sent
-         *  @param len number of bytes that will be transmitted
-         *  @returns the result of the data transfer
-         *     TxStatusSuccess if the operation was successful,
-         *     the error code otherwise
-         */
-        TxStatus send_data(uint64_t remote64, uint16_t remote16, uint8_t source_ep,
-                                uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
-                                const uint8_t *const data, uint16_t len);
-
         /** send_data_to_coordinator - sends data to the ZigBee coordinator waiting for the
          *                             packet answer with the result of the operation
          *
@@ -340,23 +299,13 @@ class XBeeZB : public XBee
          */
         bool is_joined();
         
-        /** get_device_by_id - finds and retrieves a pointer to the remote device in 
-         *                     the network whose device id matches with the parameter
+        /** get_remote_node_by_id - searches for a device in the network with the specified Node Identifier.
          *
          *  @param node_id node id of the device we are looking for
-         *  @returns a pointer to the remote object device created or NULL if the device
-         *           was not found
+         *  @returns a RemoteXBeeZB with the 16-bit and 64-bit address of the remote device whose node id matches with the parameter.
+         *  If node is not found, the returned object will have invalid addresses (RemoteXBeeZB::is_valid() will return false).
          */
-        XBeeZB * get_device_by_id(const char * const node_id);
-
-        /** get_device_by_id - searches for a device in the network with the especified 
-         *                     node id, if found, returns its 64 bit address
-         *
-         *  @param node_id node id of the device we are looking for
-         *  @returns an object with the 64 bit address of the remote device whose node id 
-         *           matches with the parameter
-         */
-        RadioStatus get_device_by_id(const char * const node_id, uint64_t * const dev_addr);
+        RemoteXBeeZB get_remote_node_by_id(const char * const node_id);
 
         /* Allow using XBee::set_param() methods for local radio from this class */
         using XBee::set_param;

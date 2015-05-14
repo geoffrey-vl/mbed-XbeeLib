@@ -28,9 +28,43 @@ using namespace XBeeLib;
 Timer XBee::_timer;
 FrameBuffer XBee::_framebuf;
 
+#if defined(DEVICE_SERIAL_FC)
+bool XBee::check_radio_flow_control()
+{
+    AtCmdFrame::AtCmdResp cmdresp;
+    uint32_t value;
+
+    if (_serial_flow_type == SerialBase::RTSCTS || _serial_flow_type == SerialBase::CTS) {
+        cmdresp = get_param("D7", &value);
+        if (cmdresp != AtCmdFrame::AtCmdRespOk) {
+            digi_log(LogLevelError, "Could not read CTS configuration. Error %d\r\n", cmdresp);
+            return false;
+        }
+        else if (value != 1) {
+            digi_log(LogLevelError, "Bad CTS configuration. Radio 'D7' param is %d and should be 1\r\n", value);
+            return false;
+        }
+    }
+
+    if (_serial_flow_type == SerialBase::RTSCTS || _serial_flow_type == SerialBase::RTS) {
+        cmdresp = get_param("D6", &value);
+        if (cmdresp != AtCmdFrame::AtCmdRespOk) {
+            digi_log(LogLevelError, "Could not read RTS configuration. Error %d\r\n", cmdresp);
+            return false;
+        }
+        else if (value != 1) {
+            digi_log(LogLevelError, "Bad RTS configuration. Radio 'D6' param is %d and should be 1\r\n", value);
+            return false;
+        }
+    }
+
+    return true;
+}
+#endif
+
 /* Class constructor */
 XBee::XBee(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
-    _mode(ModeUnknown), _type(Unknown), _timeout_ms(SYNC_OPS_TIMEOUT_MS), _hw_version(0), _fw_version(0), _dev_addr64(ADDR64_UNASSIGNED), _dev_addr16(ADDR16_UNKNOWN),
+    _mode(ModeUnknown), _type(Unknown), _hw_version(0), _fw_version(0), _timeout_ms(SYNC_OPS_TIMEOUT_MS), _dev_addr64(ADDR64_UNASSIGNED), _dev_addr16(ADDR16_UNKNOWN),
     _reset(NULL), _tx_options(0), _bc_radius(0), _hw_reset_cnt(0), _wd_reset_cnt(0), _reset_timeout(0), _modem_status_handler(NULL), _modem_status(AtCmdFrame::HwReset), _initializing(true), _pm_mode(SleepDisabled)
 {
 
@@ -48,13 +82,8 @@ XBee::XBee(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int 
     _serial_flow_type = SerialBase::Disabled;
 #if defined(DEVICE_SERIAL_FC)
     if (rts != NC && cts != NC) {
-#if !(defined AVOID_USING_RTS)
         _serial_flow_type = SerialBase::RTSCTS;
         _uart->set_flow_control(_serial_flow_type, rts, cts);        
-#else
-        _serial_flow_type = SerialBase::CTS;
-        _uart->set_flow_control(_serial_flow_type, cts);
-#endif
     }
     else if (rts != NC && cts == NC) {
         _serial_flow_type = SerialBase::RTS;
@@ -141,6 +170,11 @@ RadioStatus XBee::init(void)
     digi_log(LogLevelInfo, "VR:     %04x\r\n", _fw_version);
     digi_log(LogLevelInfo, "ADDR64: %08x:%08x\r\n", UINT64_HI32(_dev_addr64), UINT64_LO32(_dev_addr64));
     digi_log(LogLevelInfo, "ADDR16: %04x\r\n", _dev_addr16);
+
+#if defined(DEVICE_SERIAL_FC)
+    bool valid_radio_fc = check_radio_flow_control();
+    assert(valid_radio_fc == true);
+#endif
 
     _initializing = false;
     if (_modem_status_handler != NULL) {
@@ -304,6 +338,7 @@ void XBee::uart_read_cb(void)
  * object has been completed and the virtual functions filled */
 void XBee::radio_status_update(AtCmdFrame::ModemStatus modem_status)
 {
+    UNUSED_PARAMETER(modem_status);
 }
 
 void XBee::set_timeout(uint16_t timeout_ms)
@@ -653,6 +688,8 @@ RadioStatus XBee::get_pm_mode(PmMode *mode)
 
 RadioStatus XBee::config_pm_timing(uint32_t before_sleep_ms, uint32_t total_sleep_period_ms)
 {
+    UNUSED_PARAMETER(before_sleep_ms);
+    UNUSED_PARAMETER(total_sleep_period_ms);
     return Success;
 }
 

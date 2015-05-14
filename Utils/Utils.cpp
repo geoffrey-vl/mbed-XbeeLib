@@ -11,7 +11,7 @@
  */
  
 #include "Utils.h"
-#include <cstring>
+#include <string.h>
 
 void rmemcpy(uint8_t * const dest, const uint8_t * const src, uint16_t bytes)
 {

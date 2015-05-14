@@ -284,19 +284,19 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, 
     return send_data(&frame);
 }
 
-TxStatus XBeeZB::send_data(uint64_t remote64, const uint8_t *const data, uint16_t len)
+TxStatus XBeeZB::send_data_asyncr(const RemoteXBee& remote, const uint8_t *const data, uint16_t len)
 {
-    TxFrameZB frame = TxFrameZB(remote64, ADDR16_UNKNOWN, _broadcast_radious,
-                                _tx_options, data, len);
-    return send_data(&frame);
-}
+    if (!remote.is_valid_addr64b())
+        return TxStatusInvalidAddr;
 
-TxStatus XBeeZB::send_data(uint64_t remote64, uint16_t remote16,
-                                const uint8_t *const data, uint16_t len)
-{
+    const uint64_t remote64 = remote.get_addr64();
+    const uint16_t remote16 = remote.get_addr16();
+
     TxFrameZB frame = TxFrameZB(remote64, remote16, _broadcast_radious,
                                 _tx_options, data, len);
-    return send_data(&frame);
+
+    send_api_frame(&frame);
+    return TxStatusSuccess;
 }
 
 TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep, 
@@ -314,17 +314,7 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep,
                                 _tx_options, data, len);
     return send_data(&frame);
 }
-
-TxStatus XBeeZB::send_data(uint64_t remote64, uint16_t remote16, uint8_t source_ep,
-                                uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
-                                const uint8_t *const data, uint16_t len)
-{
-    TxFrameZB frame = TxFrameZB(remote64, remote16, source_ep, dest_ep,
-                                cluster_id, profile_id, _broadcast_radious,
-                                _tx_options, data, len);
-    return send_data(&frame);
-}
-                                
+                              
 TxStatus XBeeZB::send_data_to_coordinator(const uint8_t *const data, uint16_t len)
 {
     const uint64_t remaddr = ADDR64_COORDINATOR;
@@ -332,6 +322,14 @@ TxStatus XBeeZB::send_data_to_coordinator(const uint8_t *const data, uint16_t le
     TxFrameZB frame = TxFrameZB(remaddr, ADDR16_UNKNOWN, _broadcast_radious,
                                 _tx_options, data, len);
     return send_data(&frame);
+}
+
+RemoteXBeeZB XBeeZB::get_remote_node_by_id(const char * const node_id)
+{
+    uint64_t addr64;
+    uint16_t addr16;
+    _get_remote_node_by_id(node_id, &addr64, &addr16);
+    return RemoteXBeeZB(addr64, addr16);
 }
 
 NetworkRole XBeeZB::get_network_role()
@@ -399,37 +397,6 @@ void XBeeZB::unregister_io_sample_cb()
         delete _io_data_handler;
         _io_data_handler = NULL; /* as delete does not set to NULL */
     }
-}
-
-XBeeZB * XBeeZB::get_device_by_id(const char * const node_id)
-{
-    return NULL;
-}
-
-RadioStatus XBeeZB::get_device_by_id(const char * const node_id, uint64_t * const dev_addr)
-{
-    AtCmdFrame::AtCmdResp cmdresp;
-    uint32_t dh, dl;
-    
-    if (strlen(node_id) > MAX_NI_PARAM_LEN)
-        return Failure;
-
-    cmdresp = set_param("DN", (const uint8_t *)node_id, strlen(node_id));
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    
-    /* Read the address of the remote device from the DH, DL parameters */
-    cmdresp = get_param("DH", &dh);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    
-    cmdresp = get_param("DL", &dl);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    
-    *dev_addr = UINT64(dh, dl);
-    
-    return Success;
 }
 
 AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * const param, uint32_t * const data)
