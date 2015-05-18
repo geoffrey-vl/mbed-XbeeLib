@@ -448,29 +448,28 @@ class XBee
         /* ... */     
 
         /*********************** send_data member methods ************************/
-        /** send_data - sends data to a remote device waiting for the packet
-         *                   answer with the result of the operation
+        /** send_data - sends data to a remote device
          *
          *  @param remote remote device
          *  @param data pointer to the data that will be sent
          *  @param len number of bytes that will be transmitted
+         *  @param syncr if true, method waits for the packet answer with the result of the operation
          *  @returns the result of the data transfer
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
-        virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len) = 0;
+        virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr = true) = 0;
         
-        /** send_data_broadcast - sends data to all devices in the network, using the 
-         *                        broadcast address. The method waits for the packet
-         *                        answer with the result of the operation
+        /** send_data_broadcast - sends data to all devices in the network, using the broadcast address.
          *
          *  @param data pointer to the data that will be sent
          *  @param len number of bytes that will be transmitted
+         *  @param syncr if true, method waits for the packet answer with the result of the operation
          *  @returns the result of the data transfer
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
-        TxStatus send_data_broadcast(const uint8_t *const data, uint16_t len);
+        TxStatus send_data_broadcast(const uint8_t *const data, uint16_t len, bool syncr = true);
         
         /** set_param - sets a parameter in the local radio by sending an AT command and waiting for the response.
          *
@@ -758,7 +757,7 @@ class XBee
          */
         RadioProtocol get_radio_protocol(void) const;
 
-        /** get_iosample - forces an io_sample read (reads all digital and analog inputs)
+        /** _get_iosample - forces an io_sample read (reads all digital and analog inputs)
          *
          *  @param remote remote device
          *  @param io_sample buffer where the io_sample response is copied
@@ -767,7 +766,7 @@ class XBee
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-        RadioStatus get_iosample(const RemoteXBee& remote, uint8_t * const io_sample, uint16_t * const len);
+        RadioStatus _get_iosample(const RemoteXBee& remote, uint8_t * const io_sample, uint16_t * const len);
 
         void _get_remote_node_by_id(const char * const node_id, uint64_t * addr64, uint16_t * addr16);
 

@@ -61,5 +61,3 @@ class FH_RxPacketZB : public FrameHandler
 }   /* namespace XBeeLib */
 
 #endif /* __FH_RX_PACKET_ZB_H_ */
-
-

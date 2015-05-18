@@ -110,5 +110,3 @@ protected:
 };
  
 #endif /* __FRAME_BUFFER_H_ */
-
-

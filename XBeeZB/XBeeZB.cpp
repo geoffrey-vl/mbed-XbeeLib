@@ -30,10 +30,18 @@ RadioStatus XBeeZB::init()
     RadioStatus retval = XBee::init();
     /* Determine the role of this device in the network */
     switch(_fw_version & 0xFF00) {
-        case 0x2100:    _nw_role = Coordinator;     break;
-        case 0x2300:    _nw_role = Router;          break;
-        case 0x2900:    _nw_role = EndDevice;       break;
-        default:        _nw_role = UnknownRole;     break;
+        case 0x2100:
+            _nw_role = Coordinator;
+            break;
+        case 0x2300:
+            _nw_role = Router;
+            break;
+        case 0x2900:
+            _nw_role = EndDevice;
+            break;
+        default:
+            _nw_role = UnknownRole;
+            break;
     }
 
     const RadioProtocol radioProtocol = get_radio_protocol();
@@ -271,7 +279,7 @@ void XBeeZB::radio_status_update(AtCmdFrame::ModemStatus modem_status)
     digi_log(LogLevelDebug, "\r\nUpdating radio status: %02x\r\n", modem_status);
 }
 
-TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len)
+TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr)
 {
     if (!remote.is_valid_addr64b())
         return TxStatusInvalidAddr;
@@ -281,27 +289,18 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, 
 
     TxFrameZB frame = TxFrameZB(remote64, remote16, _broadcast_radious,
                                 _tx_options, data, len);
-    return send_data(&frame);
-}
-
-TxStatus XBeeZB::send_data_asyncr(const RemoteXBee& remote, const uint8_t *const data, uint16_t len)
-{
-    if (!remote.is_valid_addr64b())
-        return TxStatusInvalidAddr;
-
-    const uint64_t remote64 = remote.get_addr64();
-    const uint16_t remote16 = remote.get_addr16();
-
-    TxFrameZB frame = TxFrameZB(remote64, remote16, _broadcast_radious,
-                                _tx_options, data, len);
-
-    send_api_frame(&frame);
-    return TxStatusSuccess;
+    if (syncr) {
+        return send_data(&frame);
+    } else {
+        frame.set_data(0, 0); /* Set frame id to 0 so there is no answer */
+        send_api_frame(&frame);
+        return TxStatusSuccess;
+    }
 }
 
 TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep, 
                                 uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
-                                const uint8_t *const data, uint16_t len)
+                                const uint8_t *const data, uint16_t len, bool syncr)
 {
     if (!remote.is_valid_addr64b())
         return TxStatusInvalidAddr;
@@ -312,16 +311,29 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep,
     TxFrameZB frame = TxFrameZB(remote64, remote16, source_ep, dest_ep,
                                 cluster_id, profile_id, _broadcast_radious,
                                 _tx_options, data, len);
-    return send_data(&frame);
+    if (syncr) {
+        return send_data(&frame);
+    } else {
+        frame.set_data(0, 0); /* Set frame id to 0 so there is no answer */
+        send_api_frame(&frame);
+        return TxStatusSuccess;
+
+    }
 }
                               
-TxStatus XBeeZB::send_data_to_coordinator(const uint8_t *const data, uint16_t len)
+TxStatus XBeeZB::send_data_to_coordinator(const uint8_t *const data, uint16_t len, bool syncr)
 {
     const uint64_t remaddr = ADDR64_COORDINATOR;
     
     TxFrameZB frame = TxFrameZB(remaddr, ADDR16_UNKNOWN, _broadcast_radious,
                                 _tx_options, data, len);
-    return send_data(&frame);
+    if (syncr) {
+        return send_data(&frame);
+    } else {
+        frame.set_data(0, 0); /* Set frame id to 0 so there is no answer */
+        send_api_frame(&frame);
+        return TxStatusSuccess;
+    }
 }
 
 RemoteXBeeZB XBeeZB::get_remote_node_by_id(const char * const node_id)
@@ -510,40 +522,26 @@ RadioStatus XBeeZB::set_dio(const RemoteXBee& remote, IoLine line, DioVal val)
 
 RadioStatus XBeeZB::get_dio(const RemoteXBee& remote, IoLine line, DioVal * const val)
 {
-    uint8_t io_sample[MAX_IO_SAMPLE_BUF_LEN];
-    uint16_t len;
-
-    RadioStatus resp = get_iosample(remote, io_sample, &len);
-    if (resp != Success)
-        return resp;
-
-    IOSampleZB ioSample = IOSampleZB(io_sample, len);
-    return ioSample.get_dio(line, val);
+    return get_iosample(remote).get_dio(line, val);
 }
 
 RadioStatus XBeeZB::get_adc(const RemoteXBee& remote, IoLine line, uint16_t * const val)
 {
-    uint8_t io_sample[MAX_IO_SAMPLE_BUF_LEN];
-    uint16_t len;
+    return get_iosample(remote).get_adc(line, val);
+}
 
-    switch (line) {
-        case SUPPLY_VOLTAGE:
-        case DIO3_AD3:
-        case DIO2_AD2:
-        case DIO1_AD1:
-        case DIO0_AD0:
-            break;
-        default:
-            digi_log(LogLevelError, "get_adc: Pin %d not supported as ADC\r\n", line);
-            return Failure;
+IOSampleZB XBeeZB::get_iosample(const RemoteXBee& remote)
+{
+    uint8_t io_sample[MAX_IO_SAMPLE_ZB_LEN];
+    uint16_t len = sizeof io_sample;
+
+    RadioStatus resp = _get_iosample(remote, io_sample, &len);
+    if (resp != Success) {
+        digi_log(LogLevelError, "XBeeZB::get_iosample failed to get an IOSample\r\n");
+        len = 0;
     }
 
-    RadioStatus resp = get_iosample(remote, io_sample, &len);
-    if (resp != Success)
-        return resp;
-
-    IOSampleZB ioSample = IOSampleZB(io_sample, len);
-    return ioSample.get_adc(line, val);
+    return IOSampleZB(io_sample, len);
 }
 
 static uint16_t get_dio_pr_mask(XBeeZB::IoLine line)

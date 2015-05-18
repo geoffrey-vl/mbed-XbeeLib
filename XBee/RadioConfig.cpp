@@ -275,15 +275,14 @@ RadioStatus XBee::get_config_node_discovery(uint16_t * const timeout_ms, uint8_t
     return Success;
 }
 
-RadioStatus XBee::get_iosample(const RemoteXBee& remote, uint8_t * const io_sample, uint16_t * const len)
+RadioStatus XBee::_get_iosample(const RemoteXBee& remote, uint8_t * const io_sample, uint16_t * const len)
 {
     AtCmdFrame::AtCmdResp cmdresp;
-    *len = MAX_IO_SAMPLE_BUF_LEN;
 
     /* Force a sample read */
     cmdresp = get_param(remote, "IS", io_sample, len);
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        digi_log(LogLevelError, "get_iosample error %d:\r\n", cmdresp);
+        digi_log(LogLevelError, "_get_iosample error %d:\r\n", cmdresp);
         return Failure;
     }
 

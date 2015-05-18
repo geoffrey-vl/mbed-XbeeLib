@@ -127,6 +127,3 @@ uint8_t ApiFrame::get_frame_id() const
 {
     return _frame_id;
 }
-
-
-

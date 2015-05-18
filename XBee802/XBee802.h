@@ -141,28 +141,17 @@ class XBee802 : public XBee
         void unregister_io_sample_cb();
 
         /*********************** send_data member methods ************************/
-        /** send_data - sends data to a remote device waiting for the packet
-         *                   answer with the result of the operation
+        /** send_data - sends data to a remote device
          *
          *  @param remote remote device
          *  @param data pointer to the data that will be sent
          *  @param len number of bytes that will be transmitted
+         *  @param syncr if true, method waits for the packet answer with the result of the operation
          *  @returns the result of the data transfer
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
-        virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len);
-
-        /** send_data_asyncr - sends data to a remote device not waiting for the packet answer
-         *
-         *  @param remote remote device
-         *  @param data pointer to the data that will be sent
-         *  @param len number of bytes that will be transmitted
-         *  @returns the result of the data transfer
-         *     TxStatusSuccess if the operation was successful,
-         *     the error code otherwise
-         */
-        TxStatus send_data_asyncr(const RemoteXBee& remote, const uint8_t *const data, uint16_t len);
+        virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr = true);
 
         /** get_remote_node_by_id - searches for a device in the network with the specified Node Identifier.
          *
@@ -272,6 +261,13 @@ class XBee802 : public XBee
          */
         RadioStatus get_adc(const RemoteXBee& remote, IoLine line, uint16_t * const val);
 
+        /** get_iosample - retrieves an @ref IOSample802 from a remote node. This object can be used to get the remote node's ADC and DIO values.
+         *
+         *  @param remote remote device
+         *  @returns IOSample802 object with the remote node's DIO and ADC values.
+         */
+        IOSample802 get_iosample(const RemoteXBee& remote);
+
         /** set_pwm - sets the duty cycle of a PWM line
          *
          *  @param remote remote device
@@ -364,5 +360,3 @@ class XBee802 : public XBee
 }   /* namespace XBeeLib */
 
 #endif /* __XBEE_802_H_ */
-
-

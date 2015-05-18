@@ -121,5 +121,3 @@ class FH_NodeDiscovery802 : public FH_AtCmdResp
 } /* namespace XBeeLib */
 
 #endif /* __FH_AT_CMD_RESP_H_ */
-
-

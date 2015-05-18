@@ -1,6 +1,4 @@
 /**
- * Digi XBee library for mbed. This is the only header you have to include from your application to use the library.
- *
  * Copyright (c) 2015 Digi International Inc.,
  * All rights not expressly granted are reserved.
  *
@@ -8,7 +6,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this file,
  * You can obtain one at http://mozilla.org/MPL/2.0/.
  *
- * Digi International Inc. 11001 Bren Road East, Minnetonka, MN 55343.
+ * Digi International Inc. 11001 Bren Road East, Minnetonka, MN 55343
+ * =======================================================================
  */
 
 #ifndef _IO_IOSAMPLEZB_H_
@@ -25,7 +24,7 @@ class IOSampleZB {
          *  @param raw_data The IO Sample data, as returned by an "IS" command response or in the IoSampleRxZB (0x92) frames
          *  @param size size (in bytes) of raw_data.
          */
-        IOSampleZB(const uint8_t* const raw_data, size_t size);
+        IOSampleZB(const uint8_t* const raw_data = NULL, size_t size = 0);
 
         /** Class destructor */
         ~IOSampleZB();
@@ -49,6 +48,14 @@ class IOSampleZB {
          *     Failure otherwise
          */
         RadioStatus get_adc(XBeeZB::IoLine line, uint16_t* const val) const;
+
+        /** is_valid - checks if the IOSampleZB object has at least one DIO or ADC sample.
+         *  @returns true if valid, false otherwise
+         */
+        inline bool is_valid()
+        {
+            return _digital_mask == 0 && _analog_mask == 0;
+        }
 
     protected:
         uint16_t _digital_mask;

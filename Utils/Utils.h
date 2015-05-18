@@ -34,5 +34,3 @@
 void rmemcpy(uint8_t * const dest, const uint8_t * const src, uint16_t bytes);
 
 #endif /* __XB_UTILS_H_ */
-
-

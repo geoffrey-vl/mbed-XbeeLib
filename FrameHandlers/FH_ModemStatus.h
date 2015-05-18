@@ -44,5 +44,3 @@ class FH_ModemStatus : public FrameHandler
 };
 
 #endif /* __FH_MODEM_STATUS_H_ */
-
-

@@ -157,6 +157,3 @@ class RemoteXBeeZB : public RemoteXBee
 }   /* namespace XBeeLib */
 
 #endif /* defined(__XBEE_REMOTE_H_) */
-
-
-

@@ -50,5 +50,3 @@ class FrameHandler
 };
 
 #endif /* defined(__FRAME_HANDLER_H_) */
-
-

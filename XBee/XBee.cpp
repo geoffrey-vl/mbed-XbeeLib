@@ -657,10 +657,10 @@ TxStatus XBee::send_data(ApiFrame *frame)
     return resp;
 }
 
-TxStatus XBee::send_data_broadcast(const uint8_t *const data, uint16_t len)
+TxStatus XBee::send_data_broadcast(const uint8_t *const data, uint16_t len, bool syncr)
 {
     const RemoteXBee remoteDevice = RemoteXBee(ADDR64_BROADCAST);
-    return send_data(remoteDevice, data, len);
+    return send_data(remoteDevice, data, len, syncr);
 }
 
 #if defined(ENABLE_PM_SUPPORT)

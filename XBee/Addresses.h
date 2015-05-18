@@ -10,7 +10,7 @@
  * =======================================================================
  */
  
-#if !defined(__ADDRESSES_H_)
+#ifndef __ADDRESSES_H_
 #define __ADDRESSES_H_
 
 #include <stdint.h>

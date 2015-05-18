@@ -61,4 +61,3 @@ TxFrame802::TxFrame802(uint16_t addr16, uint8_t tx_options,
 
     set_api_frame(TxReq16Bit, frame_data, TX_REQUEST_OVERHEAD2 + len);
 }
-

@@ -29,5 +29,3 @@ class TxFrameZB : public ApiFrame
 };
 
 #endif /* __ZIGBEE_FRAME_H_ */
-
-

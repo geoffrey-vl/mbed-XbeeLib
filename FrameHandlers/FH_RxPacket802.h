@@ -82,5 +82,3 @@ class FH_RxPacket16b802 : public FrameHandler
 }   /* namespace XBeeLib */
 
 #endif /* __FH_RX_PACKET_802_H_ */
-
-

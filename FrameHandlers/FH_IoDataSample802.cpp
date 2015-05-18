@@ -102,5 +102,3 @@ void FH_IoDataSampe16b802::process_frame_data(const ApiFrame *const frame)
 
     io_data_cb(sender, ioSample);
 }
-
-

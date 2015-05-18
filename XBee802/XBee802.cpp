@@ -135,7 +135,7 @@ void XBee802::radio_status_update(AtCmdFrame::ModemStatus modem_status)
     digi_log(LogLevelDebug, "\r\nUpdating radio status: %02x\r\n", modem_status);
 }
 
-TxStatus XBee802::send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len)
+TxStatus XBee802::send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr)
 {
     if (remote.is_valid_addr64b()) {
         const uint64_t remote64 =  remote.get_addr64();
@@ -144,7 +144,13 @@ TxStatus XBee802::send_data(const RemoteXBee& remote, const uint8_t *const data,
 
         TxFrame802 frame = TxFrame802(remote64, _tx_options, data, len);
 
-        return send_data(&frame);
+        if (syncr) {
+            return send_data(&frame);
+        } else {
+            frame.set_data(0, 0); /* Set frame id to 0 so there is no answer */
+            send_api_frame(&frame);
+            return TxStatusSuccess;
+        }
     }
 
     if (remote.is_valid_addr16b()) {
@@ -154,34 +160,13 @@ TxStatus XBee802::send_data(const RemoteXBee& remote, const uint8_t *const data,
 
         TxFrame802 frame = TxFrame802(remote16, _tx_options, data, len);
 
-        return send_data(&frame);
-    }
-
-    return TxStatusInvalidAddr;
-}
-
-TxStatus XBee802::send_data_asyncr(const RemoteXBee& remote, const uint8_t *const data, uint16_t len)
-{
-    if (remote.is_valid_addr64b()) {
-        const uint64_t remote64 =  remote.get_addr64();
-
-        digi_log(LogLevelDebug, "send_data ADDR64: %08x:%08x\r\n", UINT64_HI32(remote64), UINT64_LO32(remote64));
-
-        TxFrame802 frame = TxFrame802(remote64, _tx_options, data, len);
-
-        send_api_frame(&frame);
-        return TxStatusSuccess;
-    }
-
-    if (remote.is_valid_addr16b()) {
-        const uint16_t remote16 = remote.get_addr16();
-
-        digi_log(LogLevelDebug, "send_data ADDR16: %04x\r\n", remote16);
-
-        TxFrame802 frame = TxFrame802(remote16, _tx_options, data, len);
-
-        send_api_frame(&frame);
-        return TxStatusSuccess;
+        if (syncr) {
+            return send_data(&frame);
+        } else {
+            frame.set_data(0, 0); /* Set frame id to 0 so there is no answer */
+            send_api_frame(&frame);
+            return TxStatusSuccess;
+        }
     }
 
     return TxStatusInvalidAddr;
@@ -422,39 +407,12 @@ RadioStatus XBee802::set_dio(const RemoteXBee& remote, IoLine line, DioVal val)
 
 RadioStatus XBee802::get_dio(const RemoteXBee& remote, IoLine line, DioVal * const val)
 {
-    uint8_t io_sample[MAX_IO_SAMPLE_BUF_LEN];
-    uint16_t len;
-
-    if (line > DI8) {
-        digi_log(LogLevelError, "get_dio: Pin %d not supported as IO\r\n", line);
-        return Failure;
-    }
-
-    RadioStatus resp = get_iosample(remote, io_sample, &len);
-    if (resp != Success)
-        return resp;
-
-    IOSample802 ioSample = IOSample802(io_sample, len);
-    return ioSample.get_dio(line, val);
+    return get_iosample(remote).get_dio(line, val);
 }
 
 RadioStatus XBee802::get_adc(const RemoteXBee& remote, IoLine line, uint16_t * const val)
 {
-    uint8_t io_sample[MAX_IO_SAMPLE_BUF_LEN];
-    uint16_t len;
-
-    if (line > DIO5_AD5) {
-        digi_log(LogLevelError, "get_adc: Pin %d not supported as ADC\r\n", line);
-        return Failure;
-    }
-
-    RadioStatus resp = get_iosample(remote, io_sample, &len);
-    if (resp != Success) {
-        return resp;
-    }
-    
-    IOSample802 ioSample = IOSample802(io_sample, len);
-    return ioSample.get_adc(line, val);
+    return get_iosample(remote).get_adc(line, val);
 }
 
 RadioStatus XBee802::set_pwm(const RemoteXBee& remote, IoLine line, float duty_cycle)
@@ -476,6 +434,19 @@ RadioStatus XBee802::set_pwm(const RemoteXBee& remote, IoLine line, float duty_c
         return Failure;
     
     return Success;
+}
+
+IOSample802 XBee802::get_iosample(const RemoteXBee& remote)
+{
+    uint8_t io_sample[MAX_IO_SAMPLE_802_LEN];
+    uint16_t len = sizeof io_sample;
+
+    RadioStatus resp = _get_iosample(remote, io_sample, &len);
+    if (resp != Success) {
+        digi_log(LogLevelError, "XBee802::get_iosample failed to get an IOSample\r\n");
+        len = 0;
+    }
+    return IOSample802(io_sample, len);
 }
 
 static uint8_t get_dio_mask(XBee802::IoLine line)

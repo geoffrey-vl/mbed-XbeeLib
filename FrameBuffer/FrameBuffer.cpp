@@ -126,6 +126,3 @@ uint32_t FrameBuffer::get_dropped_frames_count(void)
 
     return dropped_frames;
 }
-
-
-

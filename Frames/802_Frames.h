@@ -26,5 +26,3 @@ class TxFrame802 : public ApiFrame
 };
 
 #endif /* __802_FRAMES_H_ */
-
-

@@ -240,31 +240,19 @@ class XBeeZB : public XBee
         /**  */
         
         /*********************** send_data member methods ************************/
-        /** send_data - sends data to a remote device waiting for the packet
-         *                   answer with the result of the operation
+        /** send_data - sends data to a remote device 
          *
          *  @param remote remote device
          *  @param data pointer to the data that will be sent
          *  @param len number of bytes that will be transmitted
+         *  @param syncr if true, method waits for the packet answer with the result of the operation
          *  @returns the result of the data transfer
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
-        virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len);
+        virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr = true);                                
 
-        /** send_data_asyncr - sends data to a remote device not waiting for the packet answer
-         *
-         *  @param remote remote device
-         *  @param data pointer to the data that will be sent
-         *  @param len number of bytes that will be transmitted
-         *  @returns the result of the data transfer
-         *     TxStatusSuccess if the operation was successful,
-         *     the error code otherwise
-         */
-        TxStatus send_data_asyncr(const RemoteXBee& remote, const uint8_t *const data, uint16_t len);
-                                
-        /** send_data - sends data to a remote device waiting for the packet
-         *                   answer with the result of the operation. This method uses
+        /** send_data - sends data to a remote device. This method uses
          *                   the explicit addressing frame, allowing to use source and
          *                   destination end points and cluster and profile IDs
          *
@@ -275,24 +263,25 @@ class XBeeZB : public XBee
          *  @param profile_id profile ID
          *  @param data pointer to the data that will be sent
          *  @param len number of bytes that will be transmitted
+         *  @param syncr if true, method waits for the packet answer with the result of the operation
          *  @returns the result of the data transfer
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
         TxStatus send_data(const RemoteXBee& remote, uint8_t source_ep, 
                                 uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
-                                const uint8_t *const data, uint16_t len);
+                                const uint8_t *const data, uint16_t len, bool syncr = true);
 
-        /** send_data_to_coordinator - sends data to the ZigBee coordinator waiting for the
-         *                             packet answer with the result of the operation
+        /** send_data_to_coordinator - sends data to the ZigBee coordinator
          *
          *  @param data pointer to the data that will be sent
          *  @param len number of bytes that will be transmitted
+         *  @param syncr if true, method waits for the packet answer with the result of the operation
          *  @returns the result of the data transfer
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
-        TxStatus send_data_to_coordinator(const uint8_t *const data, uint16_t len);
+        TxStatus send_data_to_coordinator(const uint8_t *const data, uint16_t len, bool syncr = true);
 
         /** is_joined - checks if the device is joined to ZigBee network
          *  @returns true if joined, false otherwise
@@ -407,6 +396,13 @@ class XBeeZB : public XBee
          */
         RadioStatus get_adc(const RemoteXBee& remote, IoLine line, uint16_t * const val);
 
+        /** get_iosample - retrieves an @ref IOSampleZB from a remote node. This object can be used to get the remote node's ADC and DIO values.
+         *
+         *  @param remote remote device
+         *  @returns IOSampleZB object with the remote node's DIO and ADC values.
+         */
+        IOSampleZB get_iosample(const RemoteXBee& remote);
+
         /** set_pin_pull_up - enables or disables the internal pull-up resistor of a line
          *
          *  @param remote remote device
@@ -467,5 +463,3 @@ class XBeeZB : public XBee
 }   /* namespace XBeeLib */
 
 #endif /* __XBEE_ZB_H_ */
-
-

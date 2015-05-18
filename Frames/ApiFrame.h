@@ -173,5 +173,3 @@ class ApiFrame
 };
 
 #endif /* __API_FRAME_H_ */
-
-

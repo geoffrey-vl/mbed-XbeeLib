@@ -10,12 +10,10 @@
  * =======================================================================
  */
 
-#if !defined(__IO_H_)
+#ifndef __IO_H_
 #define __IO_H_
 
 #define DR_PWM_MAX_VAL      0x3FF
-
-#define MAX_IO_SAMPLE_BUF_LEN   22    /* 1 + 2 + 1 + 2 + 16 */
 
 namespace XBeeLib {
 
@@ -58,5 +56,3 @@ enum DioVal {
 
         
 #endif /* __IO_H_ */
-
-

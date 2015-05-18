@@ -84,4 +84,3 @@ TxFrameZB::TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t source_ep, uint8_t 
 
     set_api_frame(ExpAddrCmd, frame_data, EXP_ADDR_OVERHEAD + len);
 }
-

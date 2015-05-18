@@ -24,6 +24,3 @@ ApiFrame::ApiFrameType FrameHandler::get_type() const
 {
     return _type;    
 }
-
-
-

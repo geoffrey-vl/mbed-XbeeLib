@@ -43,5 +43,3 @@ void FH_ModemStatus::process_frame_data(const ApiFrame *const frame)
 
     modem_status_cb((AtCmdFrame::ModemStatus)frame->get_data_at(0));
 }
-
-
