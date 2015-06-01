@@ -16,7 +16,7 @@
 #include "XBee/Addresses.h"
 
 namespace XBeeLib {
-  
+
 /** Class for Remote XBee modules. Not to be used directly. */
 class RemoteXBee
 {
@@ -80,7 +80,7 @@ class RemoteXBee
         /** Remote Device 64 bit address */
         uint64_t      _dev_addr64;
 
-        /** Remote Device 16 bit address */        
+        /** Remote Device 16 bit address */
         uint16_t    _dev_addr16;
 };
 
@@ -98,7 +98,7 @@ class RemoteXBee802 : public RemoteXBee
          * @param remote64 the 64-bit address (ATSH and ATSL parameters) of the remote XBee module
          */
         RemoteXBee802(uint64_t remote64);
- 
+
         /** Class constructor for a 802.15.4 remote device (connected wirelessly) using 16bit addressing
          * @param remote16 the 16-bit address (ATMY parameter) of the remote XBee module
          */
@@ -144,7 +144,7 @@ class RemoteXBeeZB : public RemoteXBee
          * @param remote16 the 16-bit address (ATMY parameter) of the remote XBee module
          */
         RemoteXBeeZB(uint64_t remote64, uint16_t remote16);
- 
+
         /** Class destructor */
         ~RemoteXBeeZB();
 

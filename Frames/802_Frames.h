@@ -15,7 +15,7 @@
 
 #include "ApiFrame.h"
 
-class TxFrame802 : public ApiFrame 
+class TxFrame802 : public ApiFrame
 {
     public:
         /** Class constructor */

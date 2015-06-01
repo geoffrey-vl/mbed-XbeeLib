@@ -9,8 +9,9 @@
  * Digi International Inc. 11001 Bren Road East, Minnetonka, MN 55343
  * =======================================================================
  */
- 
+
 #include "FrameBuffer.h"
+#include "Utils/Debug.h"
 
 #if !(defined AVOID_DISABLE_IRQS)
 #define disable_irq() __disable_irq()
@@ -20,47 +21,54 @@
 #define enable_irq()
 #endif
 
-FrameBuffer::FrameBuffer() : _head(0), _tail_app(0), _tail_syncr(0), _dropped_frames(0)
+FrameBuffer::FrameBuffer(uint8_t size, uint16_t max_payload_len) : _size(size), _head(0), _tail(0), _dropped_frames(0)
 {
-    for (int i = 0; i < FRAME_BUFFER_SIZE; i++) {
-        _frm_buf[i].frame = new ApiFrame(MAX_FRAME_PAYLOAD_LEN - 1);
+    _frm_buf = new buf_element_t[_size];
+
+    assert(_frm_buf != NULL);
+
+    for (int i = 0; i < _size; i++) {
+        _frm_buf[i].frame = new ApiFrame(max_payload_len - 1);
         _frm_buf[i].status = FrameStatusFree;
     }
 }
 
 FrameBuffer::~FrameBuffer()
 {
-    for (int i = 0; i < FRAME_BUFFER_SIZE; i++) {
+    for (int i = 0; i < _size; i++) {
         delete _frm_buf[i].frame;
     }
+
+    delete _frm_buf;
 }
-    
+
 ApiFrame *FrameBuffer::get_next_free_frame(void)
 {
     uint8_t i = _head;
     ApiFrame *ret = NULL;
-    
+
     do {
         if (_frm_buf[i].status == FrameStatusFree || _frm_buf[i].status == FrameStatusComplete) {
-            if (_frm_buf[i].status == FrameStatusComplete)
+            if (_frm_buf[i].status == FrameStatusComplete) {
                 _dropped_frames++;
+            }
             _frm_buf[i].status = FrameStatusAssigned;
             ret = _frm_buf[i].frame;
-            _head = ++i % FRAME_BUFFER_SIZE;
+            _head = ++i % _size;
             break;
         }
         i++;
-        i = i % FRAME_BUFFER_SIZE;
+        i = i % _size;
     } while (i != _head);
 
-    return ret;    
+    return ret;
 }
 
 bool FrameBuffer::complete_frame(ApiFrame *frame)
 {
     bool ret = false;
-    
-    for (int i = 0; i < FRAME_BUFFER_SIZE; i++) {
+
+    for (int i = 0; i < _size; i++) {
         if (_frm_buf[i].frame == frame) {
             _frm_buf[i].status = FrameStatusComplete;
             ret = true;
@@ -71,43 +79,33 @@ bool FrameBuffer::complete_frame(ApiFrame *frame)
     return ret;
 }
 
-ApiFrame *FrameBuffer::get_next_complete_frame(uint8_t* tail)
+ApiFrame *FrameBuffer::get_next_complete_frame(void)
 {
-    uint8_t i = *tail;
+    uint8_t i = _tail;
     ApiFrame *ret = NULL;
-    
+
     do {
         disable_irq();
         if (_frm_buf[i].status == FrameStatusComplete) {
             _frm_buf[i].status = FrameStatusAssigned;
             enable_irq();
             ret = _frm_buf[i].frame;
-            *tail = ++i % FRAME_BUFFER_SIZE;
+            _tail = ++i % _size;
             break;
         }
         enable_irq();
         i++;
-        i = i % FRAME_BUFFER_SIZE;
-    } while (i != *tail);
+        i = i % _size;
+    } while (i != _tail);
 
-    return ret;    
-}
-
-ApiFrame *FrameBuffer::get_next_complete_frame_syncr(void)
-{
-    return get_next_complete_frame(&_tail_syncr);
-}
-
-ApiFrame *FrameBuffer::get_next_complete_frame_app(void)
-{
-    return get_next_complete_frame(&_tail_app);
+    return ret;
 }
 
 bool FrameBuffer::free_frame(ApiFrame *frame)
 {
     bool ret = false;
-    
-    for (int i = 0; i < FRAME_BUFFER_SIZE; i++) {
+
+    for (int i = 0; i < _size; i++) {
         if (_frm_buf[i].frame == frame) {
             _frm_buf[i].status = FrameStatusFree;
             ret = true;

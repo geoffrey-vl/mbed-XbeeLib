@@ -54,7 +54,7 @@ class IOSample802 {
          */
         inline bool is_valid()
         {
-            return _channel_mask == 0;
+            return _channel_mask != 0;
         }
 
     protected:

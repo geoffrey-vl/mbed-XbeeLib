@@ -15,7 +15,7 @@
 using namespace XBeeLib;
 
 /** Class constructor */
-FH_RxPacket64b802::FH_RxPacket64b802() : FrameHandler(ApiFrame::RxPacket64Bit), 
+FH_RxPacket64b802::FH_RxPacket64b802() : FrameHandler(ApiFrame::RxPacket64Bit),
     receive_cb(NULL)
 {
 }
@@ -25,16 +25,14 @@ FH_RxPacket64b802::~FH_RxPacket64b802()
 {
 }
 
-/**  */
 void FH_RxPacket64b802::register_receive_cb(receive_802_cb_t function)
 {
-    receive_cb = function;    
+    receive_cb = function;
 }
 
-/**  */
 void FH_RxPacket64b802::unregister_receive_cb(void)
 {
-    receive_cb = NULL;    
+    receive_cb = NULL;
 }
 
 /* 802.15.4 RX packet offsets */
@@ -43,20 +41,19 @@ void FH_RxPacket64b802::unregister_receive_cb(void)
 #define RX_802_DATA_OFFSET          10
 #define RX_802_OVERHEAD             (8+1+1)
 
-#define BROADCAST_PACKET            0x02    
+#define BROADCAST_PACKET            0x02
 
-/**  */
 void FH_RxPacket64b802::process_frame_data(const ApiFrame *const frame)
-{       
-    /* The caller checks that the type matches, so no need to check it here again */        
-    
-    if (receive_cb == NULL)
+{
+    /* The caller checks that the type matches, so no need to check it here again */
+
+    if (receive_cb == NULL) {
         return;
+    }
 
     /* We got a rx packet, decode it... */
     const uint8_t *datap = frame->get_data();
     const uint64_t sender64 = addr64_from_uint8_t(datap);
-//    uint8_t rssi = datap[RX_802_RSSI_OFFSET];
     const uint8_t rx_options = datap[RX_802_OPTIONS_OFFSET];
     const RemoteXBee802 sender = RemoteXBee802(sender64);
 
@@ -75,16 +72,14 @@ FH_RxPacket16b802::~FH_RxPacket16b802()
 {
 }
 
-/**  */
 void FH_RxPacket16b802::register_receive_cb(receive_802_cb_t function)
 {
-    receive_cb = function;    
+    receive_cb = function;
 }
 
-/**  */
 void FH_RxPacket16b802::unregister_receive_cb(void)
 {
-    receive_cb = NULL;    
+    receive_cb = NULL;
 }
 
 /* 802.15.4 RX packet offsets */
@@ -95,18 +90,17 @@ void FH_RxPacket16b802::unregister_receive_cb(void)
 #define RX_802_DATA_OFFSET2         4
 #define RX_802_OVERHEAD2            (2+1+1)
 
-/**  */
 void FH_RxPacket16b802::process_frame_data(const ApiFrame *const frame)
-{      
-    /* The caller checks that the type matches, so no need to check it here again */        
+{
+    /* The caller checks that the type matches, so no need to check it here again */
 
-    if (receive_cb == NULL)
+    if (receive_cb == NULL) {
         return;
+    }
 
     /* We got a rx packet, decode it... */
     const uint8_t *datap = frame->get_data();
     const uint16_t sender16 = ADDR16(datap[RX_802_ADDR16_MSB_OFFSET], datap[RX_802_ADDR16_LSB_OFFSET]);
-    //uint8_t rssi = datap[RX_802_RSSI_OFFSET2];
     const uint8_t rx_options = datap[RX_802_OPTIONS_OFFSET2];
     const RemoteXBee802 sender = RemoteXBee802(sender16);
 

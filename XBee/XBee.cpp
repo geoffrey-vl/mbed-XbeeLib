@@ -25,8 +25,20 @@
 
 using namespace XBeeLib;
 
-Timer XBee::_timer;
-FrameBuffer XBee::_framebuf;
+#if defined(FRAME_BUFFER_SIZE_SYNCR)
+#if FRAME_BUFFER_SIZE_SYNCR < 2
+#error "FRAME_BUFFER_SIZE_SYNCR must be at least 2"
+#endif
+#else
+#define FRAME_BUFFER_SIZE_SYNCR     1
+#endif
+
+#define MAX_FRAME_PAYLOAD_LEN_SYNCR (1  /* type */         + 1  /* id */       + 2 /* at cmd*/    + 1 /* status */    + 2 /* MY sender */ + \
+                                     8  /* 64b sender */   + 20 /* max id */   + 1 /* null ter */ + 2 /* MY parent */ + 1  /* dev type */ + \
+                                     1  /* source event */ + 2  /* prof. id */ + 2 /* man. id */)
+
+FrameBuffer XBee::_framebuf_app(FRAME_BUFFER_SIZE, MAX_FRAME_PAYLOAD_LEN);
+FrameBuffer XBee::_framebuf_syncr(FRAME_BUFFER_SIZE_SYNCR, MAX_FRAME_PAYLOAD_LEN_SYNCR);
 
 #if defined(DEVICE_SERIAL_FC)
 bool XBee::check_radio_flow_control()
@@ -39,8 +51,7 @@ bool XBee::check_radio_flow_control()
         if (cmdresp != AtCmdFrame::AtCmdRespOk) {
             digi_log(LogLevelError, "Could not read CTS configuration. Error %d\r\n", cmdresp);
             return false;
-        }
-        else if (value != 1) {
+        } else if (value != 1) {
             digi_log(LogLevelError, "Bad CTS configuration. Radio 'D7' param is %d and should be 1\r\n", value);
             return false;
         }
@@ -51,8 +62,7 @@ bool XBee::check_radio_flow_control()
         if (cmdresp != AtCmdFrame::AtCmdRespOk) {
             digi_log(LogLevelError, "Could not read RTS configuration. Error %d\r\n", cmdresp);
             return false;
-        }
-        else if (value != 1) {
+        } else if (value != 1) {
             digi_log(LogLevelError, "Bad RTS configuration. Radio 'D6' param is %d and should be 1\r\n", value);
             return false;
         }
@@ -64,17 +74,13 @@ bool XBee::check_radio_flow_control()
 
 /* Class constructor */
 XBee::XBee(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
-    _mode(ModeUnknown), _type(Unknown), _hw_version(0), _fw_version(0), _timeout_ms(SYNC_OPS_TIMEOUT_MS), _dev_addr64(ADDR64_UNASSIGNED), _dev_addr16(ADDR16_UNKNOWN),
-    _reset(NULL), _tx_options(0), _bc_radius(0), _hw_reset_cnt(0), _wd_reset_cnt(0), _reset_timeout(0), _modem_status_handler(NULL), _modem_status(AtCmdFrame::HwReset), _initializing(true), _pm_mode(SleepDisabled)
+    _mode(ModeUnknown), _hw_version(0), _fw_version(0), _timeout_ms(SYNC_OPS_TIMEOUT_MS), _dev_addr64(ADDR64_UNASSIGNED),
+    _reset(NULL), _tx_options(0), _hw_reset_cnt(0), _wd_reset_cnt(0), _modem_status_handler(NULL), _modem_status(AtCmdFrame::HwReset), _initializing(true), _node_by_ni_frame_id(0)
 {
 
     if (reset != NC) {
         _reset = new DigitalOut(reset, 1);
     }
-#if defined(ENABLE_PM_SUPPORT)
-    _on_sleep = NULL;
-    _sleep_req = NULL;
-#endif /* defined(ENABLE_PM_SUPPORT) */
 
     _uart = new RawSerial(tx, rx);
     _uart->baud(baud);
@@ -83,13 +89,11 @@ XBee::XBee(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int 
 #if defined(DEVICE_SERIAL_FC)
     if (rts != NC && cts != NC) {
         _serial_flow_type = SerialBase::RTSCTS;
-        _uart->set_flow_control(_serial_flow_type, rts, cts);        
-    }
-    else if (rts != NC && cts == NC) {
+        _uart->set_flow_control(_serial_flow_type, rts, cts);
+    } else if (rts != NC && cts == NC) {
         _serial_flow_type = SerialBase::RTS;
         _uart->set_flow_control(_serial_flow_type, rts);
-    }
-    else if (rts == NC && cts != NC) {
+    } else if (rts == NC && cts != NC) {
         _serial_flow_type = SerialBase::CTS;
         _uart->set_flow_control(_serial_flow_type, cts);
     }
@@ -122,54 +126,58 @@ RadioStatus XBee::init(void)
     AtCmdFrame::AtCmdResp cmd_resp;
     uint32_t var32;
 
-    /* Start the timer, used for the timeouts */
-    _timer.reset();
-    _timer.start();
-
     _initializing = true;
 
-    device_reset();
+    const unsigned int max_reset_retries = 3;
+    RadioStatus reset_status;
+    for (unsigned int i = 0; i < max_reset_retries; i++) {
+        reset_status = device_reset();
+        if (reset_status == Success) {
+            break;
+        }
+    }
+    if (reset_status != Success) {
+        return reset_status;
+    }
 
     /* Check if radio is in API1 or API2 _mode */
     cmd_resp = get_param("AP", &var32);
-    if (cmd_resp != AtCmdFrame::AtCmdRespOk)
+    if (cmd_resp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
-
+    }
     _mode = (RadioMode)var32;
 
     /* Read the device unique 64b address */
     uint32_t serialn_high, serialn_low;
     cmd_resp = get_param("SH", &serialn_high);
-    if (cmd_resp != AtCmdFrame::AtCmdRespOk)
+    if (cmd_resp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
+
     cmd_resp = get_param("SL", &serialn_low);
-    if (cmd_resp != AtCmdFrame::AtCmdRespOk)
+    if (cmd_resp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
 
     _dev_addr64 = ((uint64_t)serialn_high << 32) | serialn_low;
 
     /* Read some important parameters */
     cmd_resp = get_param("HV", &var32);
-    if (cmd_resp != AtCmdFrame::AtCmdRespOk)
+    if (cmd_resp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
     _hw_version = var32;
 
     cmd_resp = get_param("VR", &var32);
-    if (cmd_resp != AtCmdFrame::AtCmdRespOk)
+    if (cmd_resp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
     _fw_version = var32;
-
-    cmd_resp = get_param("MY", &var32);
-    if (cmd_resp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    _dev_addr16 = var32;
-    _type = (RadioType)(_hw_version >> 8);
 
     digi_log(LogLevelInfo, "mode:   %02x\r\n", (uint8_t)_mode);
     digi_log(LogLevelInfo, "HV:     %04x\r\n", _hw_version);
     digi_log(LogLevelInfo, "VR:     %04x\r\n", _fw_version);
     digi_log(LogLevelInfo, "ADDR64: %08x:%08x\r\n", UINT64_HI32(_dev_addr64), UINT64_LO32(_dev_addr64));
-    digi_log(LogLevelInfo, "ADDR16: %04x\r\n", _dev_addr16);
 
 #if defined(DEVICE_SERIAL_FC)
     bool valid_radio_fc = check_radio_flow_control();
@@ -180,7 +188,7 @@ RadioStatus XBee::init(void)
     if (_modem_status_handler != NULL) {
         const ApiFrame frame = ApiFrame(ApiFrame::AtModemStatus, (uint8_t *)&_modem_status, sizeof(_modem_status));
         _modem_status_handler->process_frame_data(&frame);
-    }   
+    }
 
     return Success;
 }
@@ -188,11 +196,6 @@ RadioStatus XBee::init(void)
 uint64_t XBee::get_addr64() const
 {
     return _dev_addr64;
-}
-
-uint16_t XBee::get_addr16() const
-{
-    return _dev_addr16;
 }
 
 RadioStatus XBee::hardware_reset()
@@ -211,20 +214,23 @@ RadioStatus XBee::hardware_reset()
 
 RadioStatus XBee::device_reset()
 {
-    if (hardware_reset() == Success)
+    if (hardware_reset() == Success) {
         return Success;
+    }
 
     return software_reset();
 }
 
 RadioStatus XBee::wait_for_module_to_reset(volatile uint16_t *rst_cnt_p, uint16_t init_rst_cnt)
 {
-    const int rst_timeout = _timer.read_ms() + _reset_timeout;
-    while (*rst_cnt_p == init_rst_cnt && _timer.read_ms() < rst_timeout) {
+    Timer timer = Timer();
+    timer.start();
+
+    while (*rst_cnt_p == init_rst_cnt && timer.read_ms() < RESET_TIMEOUT_MS) {
         wait_ms(100);
     }
 
-    if (_reset_timeout && *rst_cnt_p == init_rst_cnt) {
+    if (*rst_cnt_p == init_rst_cnt) {
         digi_log(LogLevelWarning, "Reset Timeout\r\n");
         return Failure;
     }
@@ -240,10 +246,11 @@ void XBee::uart_read_cb(void)
     static uint8_t chksum;
     static ApiFrame *frame = NULL;
     static bool last_byte_escaped = false;
-    
+    static FrameBuffer * framebuf = NULL;
+
     while (_uart->readable()) {
         uint8_t data = _uart->getc();
-        
+
         if (IS_API2() && rxstate != WAITING_FOR_START_FRAME) {
             if (last_byte_escaped) {
                 data = data ^ DR_ESCAPE_XOR_BYTE;
@@ -253,13 +260,14 @@ void XBee::uart_read_cb(void)
                 continue;
             }
         }
-        
+
         switch (rxstate) {
             case WAITING_FOR_START_FRAME:
-                if (data == DR_START_OF_FRAME)
+                if (data == DR_START_OF_FRAME) {
                     rxstate = WAITING_FOR_LENGTH_MSB;
+                }
                 break;
-                
+
             case WAITING_FOR_LENGTH_MSB:
                 framelen = data << 8;
                 rxstate = WAITING_FOR_LENGTH_LSB;
@@ -267,7 +275,7 @@ void XBee::uart_read_cb(void)
 
             case WAITING_FOR_LENGTH_LSB:
                 framelen |= data;
-                rxstate = WAITING_FOR_PAYLOAD; /* FIXME, if frame is NULL the status should be WAITING */
+                rxstate = WAITING_FOR_PAYLOAD;
                 bytes_read = 0;
                 chksum = 0;
                 /* Sanity check that the frame is smaller than... */
@@ -276,27 +284,157 @@ void XBee::uart_read_cb(void)
                     digi_log(LogLevelWarning, "Frame dropped, frame too long. Increase MAX_FRAME_PAYLOAD_LEN define\r\n");
                     rxstate = WAITING_FOR_START_FRAME;
                 }
-
-                frame = _framebuf.get_next_free_frame();
-                if (frame == NULL) {
-                    /* It's not possible to achive this condition as we discard older frames and only one frame can be used by syncr. commands */
-                    assert(frame != NULL);
-                    rxstate = WAITING_FOR_START_FRAME;
-                } else {
-                    frame->set_data_len(framelen - 1);
-                }
                 break;
 
             case WAITING_FOR_PAYLOAD:
-                if (!bytes_read)
-                    frame->set_frame_type((ApiFrame::ApiFrameType)data);
-                else {
+                #define CACHED_SIZE 3
+                static uint8_t frame_cached[CACHED_SIZE];
+
+                if (framelen <= CACHED_SIZE) {
+                    if (!bytes_read) {
+                        const ApiFrame::ApiFrameType frame_type = (ApiFrame::ApiFrameType)data;
+                        switch (frame_type)
+                        {
+                            case ApiFrame::AtCmdResp:       /**< AtCmdResp */
+                            case ApiFrame::RemoteCmdResp:   /**< RemoteCmdResp */
+                            case ApiFrame::TxStatusZB:      /**< TxStatusZB: Only for ZigBee modules */
+                            case ApiFrame::TxStatus:        /**< TxStatus */
+                                framebuf = &_framebuf_syncr;
+                                break;
+
+                            case ApiFrame::RxPacket64Bit:   /**< RxPacket64Bit: Only for 802.15.4 modules */
+                            case ApiFrame::RxPacket16Bit:   /**< RxPacket16Bit: Only for 802.15.4 modules */
+                            case ApiFrame::Io64Bit:         /**< Io64Bit: Only for 802.15.4 modules */
+                            case ApiFrame::Io16Bit:         /**< Io16Bit */
+                            case ApiFrame::AtModemStatus:   /**< AtModemStatus */
+                            case ApiFrame::RxPacketAO0:     /**< RxPacketAO0: Only for ZigBee modules */
+                            case ApiFrame::IoSampleRxZB:    /**< IoSampleRxZB: Only for ZigBee modules */
+                                framebuf = &_framebuf_app;
+                                break;
+
+                            case ApiFrame::RxPacketAO1:     /**< RxPacketAO1: Only for ZigBee modules */
+                            case ApiFrame::SensorRxIndAO0:  /**< SensorRxIndAO0: Only for ZigBee modules */
+                            case ApiFrame::NodeIdentIndAO0: /**< NodeIdentIndAO0: Only for ZigBee modules */
+                            case ApiFrame::OtaFwUpStatus:   /**< OtaFwUpStatus */
+                            case ApiFrame::RouteRecInd:     /**< RouteRecInd */
+                            case ApiFrame::Many2OneRRInd:   /**< Many2OneRRInd */
+                            case ApiFrame::TxReq64Bit:      /**< TxReq64Bit: Only for 802.15.4 modules */
+                            case ApiFrame::TxReq16Bit:      /**< TxReq16Bit: Only for 802.15.4 modules */
+                            case ApiFrame::AtCmd:           /**< AtCmd */
+                            case ApiFrame::AtCmdQueuePV:    /**< AtCmdQueuePV */
+                            case ApiFrame::TxReqZB:         /**< TxReqZB: Only for ZigBee modules */
+                            case ApiFrame::ExpAddrCmd:      /**< ExpAddrCmd: Only for ZigBee modules */
+                            case ApiFrame::RemoteCmdReq:    /**< RemoteCmdReq */
+                            case ApiFrame::CreateSrcRoute:  /**< CreateSrcRoute */
+                            case ApiFrame::Invalid:         /**< Invalid */
+                                framebuf = NULL;
+                                break;
+                        }
+
+                        if (framebuf == NULL) {
+                            digi_log(LogLevelWarning, "Discarding not supported frame type %02x\r\n", frame_type);
+                            rxstate = WAITING_FOR_START_FRAME;
+                        } else {
+                            frame = framebuf->get_next_free_frame();
+                            if (frame == NULL) {
+                                /* It's not possible to achive this condition as we discard older frames and only one frame can be used by syncr. commands */
+                                assert(frame != NULL);
+                                rxstate = WAITING_FOR_START_FRAME;
+                            } else {
+                                frame->set_data_len(framelen - 1);
+                            }
+
+                            frame->set_frame_type(frame_type);
+                        }
+                    } else {
+                        frame->set_data(data, bytes_read - 1);
+                    }
+                    chksum += data;
+                    bytes_read++;
+                    if (bytes_read == framelen) {
+                        rxstate = WAITING_FOR_CHECKSUM;
+                    }
+                    break;
+                }
+
+
+                if (bytes_read < CACHED_SIZE) {
+                    frame_cached[bytes_read] = data;
+                }
+                else if (bytes_read == CACHED_SIZE) {
+                    const ApiFrame::ApiFrameType frame_type = (ApiFrame::ApiFrameType)frame_cached[0];
+                    switch (frame_type)
+                    {
+                        case ApiFrame::RemoteCmdResp:   /**< RemoteCmdResp */
+                        case ApiFrame::TxStatusZB:      /**< TxStatusZB: Only for ZigBee modules */
+                        case ApiFrame::TxStatus:        /**< TxStatus */
+                            framebuf = &_framebuf_syncr;
+                            break;
+
+                        case ApiFrame::AtCmdResp:       /**< AtCmdResp */
+                            if ((frame_cached[1] != _node_by_ni_frame_id ) && (frame_cached[2] == 'N') && (data == 'D'))
+                            {
+                                framebuf = &_framebuf_app;
+                            } else {
+                                framebuf = &_framebuf_syncr;
+                            }
+                            break;
+
+                        case ApiFrame::RxPacket64Bit:   /**< RxPacket64Bit: Only for 802.15.4 modules */
+                        case ApiFrame::RxPacket16Bit:   /**< RxPacket16Bit: Only for 802.15.4 modules */
+                        case ApiFrame::Io64Bit:         /**< Io64Bit: Only for 802.15.4 modules */
+                        case ApiFrame::Io16Bit:         /**< Io16Bit */
+                        case ApiFrame::AtModemStatus:   /**< AtModemStatus */
+                        case ApiFrame::RxPacketAO0:     /**< RxPacketAO0: Only for ZigBee modules */
+                        case ApiFrame::IoSampleRxZB:    /**< IoSampleRxZB: Only for ZigBee modules */
+                            framebuf = &_framebuf_app;
+                            break;
+
+                        case ApiFrame::RxPacketAO1:     /**< RxPacketAO1: Only for ZigBee modules */
+                        case ApiFrame::SensorRxIndAO0:  /**< SensorRxIndAO0: Only for ZigBee modules */
+                        case ApiFrame::NodeIdentIndAO0: /**< NodeIdentIndAO0: Only for ZigBee modules */
+                        case ApiFrame::OtaFwUpStatus:   /**< OtaFwUpStatus */
+                        case ApiFrame::RouteRecInd:     /**< RouteRecInd */
+                        case ApiFrame::Many2OneRRInd:   /**< Many2OneRRInd */
+                        case ApiFrame::TxReq64Bit:      /**< TxReq64Bit: Only for 802.15.4 modules */
+                        case ApiFrame::TxReq16Bit:      /**< TxReq16Bit: Only for 802.15.4 modules */
+                        case ApiFrame::AtCmd:           /**< AtCmd */
+                        case ApiFrame::AtCmdQueuePV:    /**< AtCmdQueuePV */
+                        case ApiFrame::TxReqZB:         /**< TxReqZB: Only for ZigBee modules */
+                        case ApiFrame::ExpAddrCmd:      /**< ExpAddrCmd: Only for ZigBee modules */
+                        case ApiFrame::RemoteCmdReq:    /**< RemoteCmdReq */
+                        case ApiFrame::CreateSrcRoute:  /**< CreateSrcRoute */
+                        case ApiFrame::Invalid:         /**< Invalid */
+                            framebuf = NULL;
+                            break;
+                    }
+
+                    if (framebuf == NULL) {
+                        digi_log(LogLevelWarning, "Discarding not supported frame type %02x\r\n", frame_type);
+                        rxstate = WAITING_FOR_START_FRAME;
+                    } else {
+                        frame = framebuf->get_next_free_frame();
+                        if (frame == NULL) {
+                            /* It's not possible to achive this condition as we discard older frames and only one frame can be used by syncr. commands */
+                            assert(frame != NULL);
+                            rxstate = WAITING_FOR_START_FRAME;
+                        } else {
+                            frame->set_data_len(framelen - 1);
+                        }
+
+                        frame->set_frame_type(frame_type);
+                        frame->set_data(frame_cached[1], 0);
+                        frame->set_data(frame_cached[2], 1);
+                        frame->set_data(data, 2);
+                    }
+                } else {
                     frame->set_data(data, bytes_read - 1);
                 }
                 chksum += data;
                 bytes_read++;
-                if (bytes_read == framelen)
+                if (bytes_read == framelen) {
                     rxstate = WAITING_FOR_CHECKSUM;
+                }
                 break;
 
             case WAITING_FOR_CHECKSUM:
@@ -304,37 +442,37 @@ void XBee::uart_read_cb(void)
                 if (chksum == 0xFF) {
                     /* We got a valid frame!! */
                     frame->dump();
-                                        
+
                     /* If its a _modem status frame, process it to update the status info of the library.
                      * The frame is also queued to allow processing it other handlers registered.
                      * Note that radio_status_update() has to be fast to minimize the impact of processing
                      * the funcion here */
                     if (frame->get_frame_type() == ApiFrame::AtModemStatus) {
                         radio_status_update((AtCmdFrame::ModemStatus)frame->get_data_at(0));
-                        if (_initializing)
-                            _framebuf.free_frame(frame);
-                        else
-                            _framebuf.complete_frame(frame);
-                    }
-                    else {
-                        _framebuf.complete_frame(frame);
+                        if (_initializing) {
+                            framebuf->free_frame(frame);
+                        } else {
+                            framebuf->complete_frame(frame);
+                        }
+                    } else {
+                        framebuf->complete_frame(frame);
                         /* Note, the frame will be released elsewhere, once it has been processed */
                     }
                 } else {
-                    _framebuf.free_frame(frame);
+                    framebuf->free_frame(frame);
                     digi_log(LogLevelWarning, "Checksum error, got %02x, %02x\r\n", data, chksum);
                 }
                 /* Intentional fall-through */
             default:
                 rxstate = WAITING_FOR_START_FRAME;
                 break;
-        }                
+        }
     }
     /* TODO, signal the thread processing incoming frames */
 }
 
 /* This is a pure virtual function, but exists here because its called from this class to
- * to update the status of the object, and can be called before the construction of the 
+ * to update the status of the object, and can be called before the construction of the
  * object has been completed and the virtual functions filled */
 void XBee::radio_status_update(AtCmdFrame::ModemStatus modem_status)
 {
@@ -343,7 +481,7 @@ void XBee::radio_status_update(AtCmdFrame::ModemStatus modem_status)
 
 void XBee::set_timeout(uint16_t timeout_ms)
 {
-    this->_timeout_ms = timeout_ms;        
+    this->_timeout_ms = timeout_ms;
 }
 
 uint16_t XBee::get_timeout(void) const
@@ -351,21 +489,14 @@ uint16_t XBee::get_timeout(void) const
     return _timeout_ms;
 }
 
-RadioType XBee::get_radio_type() const
-{
-    return _type;
-}
-
-
-
-/* */
-ApiFrame * XBee::get_this_api_frame(uint8_t id, ApiFrame::ApiFrameType type, 
+ApiFrame * XBee::get_this_api_frame(uint8_t id, ApiFrame::ApiFrameType type,
                                           ApiFrame::ApiFrameType type2)
 {
-    int const timeout = _timer.read_ms() + _timeout_ms;
+    Timer timer = Timer();
+    timer.start();
 
-    while (_timer.read_ms() < timeout) {
-        ApiFrame * frame = _framebuf.get_next_complete_frame_syncr();
+    while (timer.read_ms() < _timeout_ms) {
+        ApiFrame * frame = _framebuf_syncr.get_next_complete_frame();
         if (frame == NULL) {
             wait_ms(10);
             continue;
@@ -373,21 +504,21 @@ ApiFrame * XBee::get_this_api_frame(uint8_t id, ApiFrame::ApiFrameType type,
 
         if ((frame->get_frame_type() != type) &&
             (frame->get_frame_type() != type2)) {
-            _framebuf.complete_frame(frame);
-            wait_ms(1);
-            continue;
-        }
-            
-        if (frame->get_data_at(ATCMD_RESP_FRAME_ID_OFFSET) != id) {
-            _framebuf.complete_frame(frame);
+            _framebuf_syncr.complete_frame(frame);
             wait_ms(1);
             continue;
         }
 
-        /* frame found */    
+        if (frame->get_data_at(ATCMD_RESP_FRAME_ID_OFFSET) != id) {
+            _framebuf_syncr.complete_frame(frame);
+            wait_ms(1);
+            continue;
+        }
+
+        /* frame found */
         return frame;
     }
-    
+
     digi_log(LogLevelWarning, "Frame type: %02x, id: %02x, timeout\r\n", (uint8_t)type, id);
 
     return NULL;
@@ -409,7 +540,7 @@ void XBee::send_byte_escaping_if(uint8_t data)
         }
     } else {
         _uart->putc(data);
-    }    
+    }
 }
 
 void XBee::send_api_frame(ApiFrame *frame)
@@ -417,15 +548,15 @@ void XBee::send_api_frame(ApiFrame *frame)
     uint8_t chksum;
     const uint8_t *data;
     uint16_t bytes_sent = 0, frame_len;
-    
+
     frame->dump();
-        
+
     frame_len = 1 + frame->get_data_len(); /* frame type + frame payload */
     data = frame->get_data();
-    
+
     /* Send the start of frame delimiter */
     _uart->putc(DR_START_OF_FRAME);
-    
+
     /* Now the length */
     send_byte_escaping_if((uint8_t)(frame_len >> 8));
     send_byte_escaping_if((uint8_t)frame_len);
@@ -440,47 +571,49 @@ void XBee::send_api_frame(ApiFrame *frame)
         chksum += *data;
         send_byte_escaping_if(*data++);
     }
-            
+
     /* And finally send the checksum */
     send_byte_escaping_if(~chksum);
 }
-  
-/** */        
+
 RadioStatus XBee::register_frame_handler(FrameHandler *const handler)
 {
     if (handler != NULL) {
         for (int i = 0; i < MAX_FRAME_HANDLERS; i++) {
-            if (_fhandlers[i] != NULL)
+            if (_fhandlers[i] != NULL) {
                 continue;
+            }
             _fhandlers[i] = handler;
             return Success;
         }
     }
 
     digi_log(LogLevelError, "No more Frame Handlers available. Increase MAX_FRAME_HANDLERS define\r\n");
-    
-    return Failure;
-}     
 
-/** */
+    return Failure;
+}
+
 RadioStatus XBee::unregister_frame_handler(FrameHandler *const handler)
 {
     int i;
 
     if (handler != NULL) {
         for (i = 0; i < MAX_FRAME_HANDLERS; i++) {
-            if (_fhandlers[i] == handler)
+            if (_fhandlers[i] == handler) {
                 break;
+            }
         }
-        
-        if (i == MAX_FRAME_HANDLERS)
+
+        if (i == MAX_FRAME_HANDLERS) {
             return Failure;
-        
+        }
+
         do {
-            if (i == MAX_FRAME_HANDLERS - 1)
+            if (i == MAX_FRAME_HANDLERS - 1) {
                 _fhandlers[i] = NULL;
-            else
+            } else {
                 _fhandlers[i] = _fhandlers[i + 1];
+            }
         } while (++i < MAX_FRAME_HANDLERS);
     }
 
@@ -640,20 +773,21 @@ TxStatus XBee::send_data(ApiFrame *frame)
 
     send_api_frame(frame);
 
-    /* Wait for the transmit status response packet */   
-    resp_frame = get_this_api_frame(frame->get_frame_id(), 
+    /* Wait for the transmit status response packet */
+    resp_frame = get_this_api_frame(frame->get_frame_id(),
                     ApiFrame::TxStatusZB, ApiFrame::TxStatus);
-    if (resp_frame == NULL)
+    if (resp_frame == NULL) {
         return resp;
-    
+    }
+
     uint8_t index = resp_frame->get_frame_type() == ApiFrame::TxStatusZB ?
             TX_STATUS_OFFSET_ZB : TX_STATUS_OFFSET_802;
-    
+
     resp = (TxStatus)resp_frame->get_data_at(index);
- 
+
     /* Once processed, remove the frame from the buffer */
-    _framebuf.free_frame(resp_frame);
-    
+    _framebuf_syncr.free_frame(resp_frame);
+
     return resp;
 }
 
@@ -663,82 +797,11 @@ TxStatus XBee::send_data_broadcast(const uint8_t *const data, uint16_t len, bool
     return send_data(remoteDevice, data, len, syncr);
 }
 
-#if defined(ENABLE_PM_SUPPORT)
-
-RadioStatus XBee::set_pm_control(PmMode mode, PinName on_sleep, PinName sleep_rq)
-{
-    if (on_sleep != NC) {
-        _on_sleep = new InterruptIn(on_sleep);
-    }
-    if (sleep_rq != NC) {
-        _sleep_req = new DigitalOut(sleep_rq);
-    }
-    _pm_mode = mode;
-    /* TODO, set PM mode in the radio */
-    //return 0;
-    return Success;
-}
-
-
-RadioStatus XBee::get_pm_mode(PmMode *mode)
-{
-    *mode = _pm_mode;
-    return Success;
-}
-
-RadioStatus XBee::config_pm_timing(uint32_t before_sleep_ms, uint32_t total_sleep_period_ms)
-{
-    UNUSED_PARAMETER(before_sleep_ms);
-    UNUSED_PARAMETER(total_sleep_period_ms);
-    return Success;
-}
-
-RadioStatus XBee::enter_sleep_mode()
-{
-    if (_sleep_req == NULL)
-        return sleep_now();
-    
-    _sleep_req->write(1);
-    return Success;
-}
-
-void XBee::exit_sleep_mode()
-{
-    /* TODO, check also mode? */
-    if (_sleep_req != NULL)
-        _sleep_req->write(0);
-}
-
-bool XBee::is_sleeping()
-{
-    /* TODO */
-    return true;
-}
-         
-
-
-void XBee::register_wakeup_cb(void (*f)(void))
-{
-    if (_on_sleep == NULL)
-        return;
-    
-    _on_sleep->rise(f);
-}
-
-void XBee::unregister_wakeup_cb()
-{
-    _on_sleep->disable_irq();
-    _on_sleep->rise(NULL);
-}
-
-#endif /* defined(ENABLE_PM_SUPPORT) */
-
-
-uint32_t XBee::process_rx_frames(void)
+uint32_t XBee::process_rx_frames()
 {
     ApiFrame *frame = NULL;
 
-    while ((frame = _framebuf.get_next_complete_frame_app()) != NULL) {
+    while ((frame = _framebuf_app.get_next_complete_frame()) != NULL) {
         for (int i = 0; i < MAX_FRAME_HANDLERS; i++) {
 
             if (_fhandlers[i] == NULL) {
@@ -753,12 +816,17 @@ uint32_t XBee::process_rx_frames(void)
 
             _fhandlers[i]->process_frame_data(frame);
         }
-            
-        /* Once processed, remove the frame from the buffer */
-        _framebuf.free_frame(frame);
-    }    
 
-    return _framebuf.get_dropped_frames_count();
+        /* Once processed, remove the frame from the buffer */
+        _framebuf_app.free_frame(frame);
+    }
+
+    const uint32_t dropped_frames = _framebuf_app.get_dropped_frames_count();
+    if (dropped_frames != 0) {
+        digi_log(LogLevelWarning, "process_rx_frames: %d frames dropped!!!\r\n", dropped_frames);
+    }
+
+    return dropped_frames;
 }
 
 void XBee::register_modem_status_cb(modem_status_cb_t function)
@@ -780,3 +848,14 @@ void XBee::unregister_modem_status_cb()
     }
 }
 
+int XBee::get_AI(void)
+{
+    uint32_t atai;
+    const AtCmdFrame::AtCmdResp status = get_param("AI", &atai);
+
+    if (status != AtCmdFrame::AtCmdRespOk) {
+        digi_log(LogLevelError, "get_association_indication() failed with %d\r\n", status);
+        return -1;
+    }
+    return atai;
+}

@@ -54,7 +54,7 @@ class IOSampleZB {
          */
         inline bool is_valid()
         {
-            return _digital_mask == 0 && _analog_mask == 0;
+            return _digital_mask != 0 || _analog_mask != 0;
         }
 
     protected:

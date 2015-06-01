@@ -44,6 +44,25 @@ class XBeeZB : public XBee
             SUPPLY_VOLTAGE = 7, /**< SUPPLY_VOLTAGE is not a real pin */
         };
 
+        enum AssocStatus {
+            ErrorReading    = -1,       /**< Error occurred when reading parameter. */
+            Joined          = 0x00,     /**< Successfully formed or joined a network. (Coordinators form a network, routers and end devices join a network.) */
+            NoPANs          = 0x21,     /**< Scan found no PANs */
+            NoValidPAN      = 0x22,     /**< Scan found no valid PANs based on current SC and ID settings */
+            JoinNotAllowed  = 0x23,     /**< Valid Coordinator or Routers found, but they are not allowing joining (NJ expired). */
+            NoBeacons       = 0x24,     /**< No joinable beacons were found. */
+            Unexpected      = 0x25,     /**< Unexpected state, node should not be attempting to join at this time. */
+            JoinFailed      = 0x27,     /**< Node Joining attempt failed (typically due to incompatible security settings). */
+            CoordStartFail  = 0x2A,     /**< Coordinator start attempt failed */
+            CheckingCoord   = 0x2B,     /**< Checking for an existing coordinator. */
+            LeaveFail       = 0x2C,     /**< Attempt to leave the network failed. */
+            JoinNoResponse  = 0xAB,     /**< Attempted to join a device that did not respond. */
+            SecKeyUnsec     = 0xAC,     /**< Secure join error - network security key received unsecured. */
+            SecKeyNotRec    = 0xAD,     /**< Secure join error - network security key not received. */
+            SecBadKey       = 0xAF,     /**< Secure join error - joining device does not have the right preconfigured link key. */
+            Scanning        = 0xFF      /**< Scanning for a ZigBee network (routers and end devices). */
+        };
+
         /** Class constructor
          * @param tx the TX pin of the UART that will interface the XBee module
          * @param rx the RX pin of the UART that will interface the XBee module
@@ -54,10 +73,10 @@ class XBeeZB : public XBee
          * to this baud rate (ATBD parameter). By default it is configured to 9600 bps
          */
         XBeeZB(PinName tx, PinName rx, PinName reset = NC, PinName rts = NC, PinName cts = NC, int baud = 9600);
- 
+
         /** Class destructor */
         virtual ~XBeeZB();
-        
+
         /** init-  initializes object
          * This function must be called just after creating the object so it initializes internal data.
          * @returns
@@ -66,7 +85,7 @@ class XBeeZB : public XBee
          */
         RadioStatus init();
 
-        /** set_panid - sets the 64bit extended PAN ID.        
+        /** set_panid - sets the 64bit extended PAN ID.
          *
          *  @note on ZigBee devices, if set to 0, the coordinator will select a random PAN ID
          *           and the routers will join any extended PAN ID
@@ -76,7 +95,7 @@ class XBeeZB : public XBee
          *     Failure otherwise
          */
         RadioStatus set_panid(uint64_t panid);
-        
+
         /** get_configured_panid - gets the configured PAN ID, as it was set by @ref set_panid().
          *
          *  @note on ZigBee devices, if set to 0, the coordinator will select a random PAN ID
@@ -161,16 +180,7 @@ class XBeeZB : public XBee
          */
         RadioStatus check_for_coordinator_at_start(bool enable);
 
-        /** enable_network_encryption - Enable network encryption.
-         *
-         *  @param enable whether to enable this feature or not
-         *  @returns
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-        RadioStatus enable_network_encryption(bool enable);
-
-        /** set_encryption_key - Set the 128-bit AES network encryption key. If set to 0 (default), the module will select a random network key.
+        /** set_network_security_key - (Coordinator only) Set the 128-bit AES network encryption key. If set to 0 (default), the module will select a random network key.
          *  It is not recommended to set the key programmatically, because it could be read through the raw serial port bits.
          *  @param key pointer to the 128-bit AES key
          *  @param length size of the buffer pointed by 'key'
@@ -178,17 +188,7 @@ class XBeeZB : public XBee
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-        RadioStatus set_encryption_key(const uint8_t * const key, const uint16_t length);
-
-        /** set_tc_link_key - Set the Trust Center 128-bit AES link key. Setting it to 0 will cause the coordinator to transmit the network key in the clear to joining devices, and will cause joining devices to acquire the network key in the clear when joining.
-         *  It is not recommended to set the key programmatically, because it could be read through the raw serial port bits.
-         *  @param key pointer to the 128-bit AES key
-         *  @param length size of the buffer pointed by 'key'
-         *  @returns
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-        RadioStatus set_tc_link_key(const uint8_t * const key, const uint16_t length);
+        RadioStatus set_network_security_key(const uint8_t * const key, const uint16_t length);
 
 #define XBEE_ZB_ENC_OPT_SEND_KEY_ON_JOIN    0x01
 #define XBEE_ZB_ENC_OPT_USE_TRUST_CENTER    0x02
@@ -232,15 +232,8 @@ class XBeeZB : public XBee
         /** unregister_io_sample_cb - removes the IO Sample Data reception callback */
         void unregister_io_sample_cb();
 
-        /** get_network_role - returns the role of this device in the ZigBee network
-         *
-         *  @returns the role of this device
-         */
-        NetworkRole get_network_role();
-        /**  */
-        
         /*********************** send_data member methods ************************/
-        /** send_data - sends data to a remote device 
+        /** send_data - sends data to a remote device
          *
          *  @param remote remote device
          *  @param data pointer to the data that will be sent
@@ -250,7 +243,7 @@ class XBeeZB : public XBee
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
-        virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr = true);                                
+        virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr = true);
 
         /** send_data - sends data to a remote device. This method uses
          *                   the explicit addressing frame, allowing to use source and
@@ -268,7 +261,7 @@ class XBeeZB : public XBee
          *     TxStatusSuccess if the operation was successful,
          *     the error code otherwise
          */
-        TxStatus send_data(const RemoteXBee& remote, uint8_t source_ep, 
+        TxStatus send_data(const RemoteXBee& remote, uint8_t source_ep,
                                 uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
                                 const uint8_t *const data, uint16_t len, bool syncr = true);
 
@@ -283,11 +276,17 @@ class XBeeZB : public XBee
          */
         TxStatus send_data_to_coordinator(const uint8_t *const data, uint16_t len, bool syncr = true);
 
+        /** get_assoc_status - returns current network association status. This wraps AI parameter, for more information refer to moudle's Reference Manual.
+         *
+         *  @returns an AssocStatus with current network association status.
+         */
+        AssocStatus get_assoc_status(void);
+
         /** is_joined - checks if the device is joined to ZigBee network
          *  @returns true if joined, false otherwise
          */
         bool is_joined();
-        
+
         /** get_remote_node_by_id - searches for a device in the network with the specified Node Identifier.
          *
          *  @param node_id node id of the device we are looking for
@@ -307,17 +306,17 @@ class XBeeZB : public XBee
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp set_param(const RemoteXBee& remote, const char * const param, uint32_t data);
-        
+
         /** set_param - sets a parameter in a remote radio by sending an AT command and waiting for the response.
          *
          *  @param remote remote device
          *  @param param parameter to be set.
-         *  @param data the parameter value byte array (len bytes) to be set. 
+         *  @param data the parameter value byte array (len bytes) to be set.
          *  @param len number of bytes of the parameter value.
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp set_param(const RemoteXBee& remote, const char * const param, const uint8_t * data = NULL, uint16_t len = 0);
-        
+
         /* Allow using XBee::get_param() methods for local radio from this class */
         using XBee::get_param;
 
@@ -325,17 +324,17 @@ class XBeeZB : public XBee
          *
          *  @param remote remote device
          *  @param param parameter to be get.
-         *  @param data pointer where the param value (4 bytes) will be stored. 
+         *  @param data pointer where the param value (4 bytes) will be stored.
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp get_param(const RemoteXBee& remote, const char * const param, uint32_t * const data);
-      
+
         /** get_param - gets a parameter from a remote radio by sending an AT command and waiting for the response.
          *
          *  @param remote remote device
          *  @param param parameter to be get.
-         *  @param data pointer where the param value (n bytes) will be stored. 
-         *  @param len pointer where the number of bytes of the param value will be stored. 
+         *  @param data pointer where the param value (n bytes) will be stored.
+         *  @param len pointer where the number of bytes of the param value will be stored.
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp get_param(const RemoteXBee& remote, const char * const param, uint8_t * const data, uint16_t * const len);
@@ -427,18 +426,6 @@ class XBeeZB : public XBee
         RadioStatus enable_dio_change_detection(const RemoteXBee& remote, IoLine line, bool enable);
 
     protected:
-        /** Role of this device in the ZigBee network (coord, router or end device) */
-        NetworkRole      _nw_role;
-    
-        /** Indicates if the device is joined to a network. This variable is automatically updated
-         * by the library. If the device is acting as coordinator, its value its true */
-        volatile bool        _joined_network;
-
-        /** Vcc exceeded counter, automatically updated by the library */
-        volatile uint16_t    _vcc_exceeded_cnt;
-
-        /* TODO, add setter/getter */
-        uint8_t     _broadcast_radious;
 
         /** Frame handler used for the node discovery. Registered when a callback function
          * is registered */
@@ -447,12 +434,12 @@ class XBeeZB : public XBee
         /** Frame handler used for the rx packets. Automatically registered when a callback
          *  function is registered */
         FH_RxPacketZB  *_rx_pkt_handler;
-    
+
         /** Frame handler used for the IO Data Sample packets. Automatically registered when a callback
          *  function is registered */
         FH_IoDataSampeZB  *_io_data_handler;
 
-        /** Method called directly by the library when a modem status frame is received to 
+        /** Method called directly by the library when a modem status frame is received to
          * update the internal status variables */
         virtual void radio_status_update(AtCmdFrame::ModemStatus modem_status);
 

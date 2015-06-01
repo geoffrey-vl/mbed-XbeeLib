@@ -23,27 +23,25 @@ FH_IoDataSampe64b802::FH_IoDataSampe64b802() : FrameHandler(ApiFrame::Io64Bit),
 /** Class destructor */
 FH_IoDataSampe64b802::~FH_IoDataSampe64b802()
 {
+
 }
 
-/**  */
 void FH_IoDataSampe64b802::register_io_data_cb(io_data_cb_802_t function)
 {
-    io_data_cb = function;    
+    io_data_cb = function;
 }
 
-/**  */
 void FH_IoDataSampe64b802::unregister_io_data_cb()
 {
-    io_data_cb = NULL;    
+    io_data_cb = NULL;
 }
 
 #define IO_SAMPLE_64_802_DATA_OFFSET        10
 
-/**  */
 void FH_IoDataSampe64b802::process_frame_data(const ApiFrame *const frame)
 {
     const uint8_t * const datap = frame->get_data();
-        
+
     /* The caller checks that the type matches, so no need to check it here again */
     if (io_data_cb == NULL) {
         return;
@@ -68,13 +66,11 @@ FH_IoDataSampe16b802::~FH_IoDataSampe16b802()
 {
 }
 
-/**  */
 void FH_IoDataSampe16b802::register_io_data_cb(io_data_cb_802_t function)
 {
     io_data_cb = function;
 }
 
-/**  */
 void FH_IoDataSampe16b802::unregister_io_data_cb()
 {
     io_data_cb = NULL;
@@ -84,7 +80,6 @@ void FH_IoDataSampe16b802::unregister_io_data_cb()
 #define IO_SAMPLE_16_802_ADDR16_LSB_OFFSET  1
 #define IO_SAMPLE_16_802_DATA_OFFSET        4
 
-/**  */
 void FH_IoDataSampe16b802::process_frame_data(const ApiFrame *const frame)
 {
     const uint8_t * const datap = frame->get_data();;

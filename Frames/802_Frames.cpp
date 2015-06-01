@@ -24,7 +24,7 @@ TxFrame802::TxFrame802(uint64_t addr, uint8_t tx_options,
                 const uint8_t *const data, uint16_t len)
 {
     uint8_t frame_data[TX_REQUEST_OVERHEAD + len];
-    
+
     _frame_id = get_next_frame_id();
 
     /* copy the frame id, the 64bit remote address, the tx options byte
@@ -33,9 +33,10 @@ TxFrame802::TxFrame802(uint64_t addr, uint8_t tx_options,
     frame_data[0] = _frame_id;
     rmemcpy(&frame_data[1], (const uint8_t *)&addr, sizeof addr);
     frame_data[9] = tx_options;
-        
-    if (len)
+
+    if (len) {
         memcpy(&frame_data[10], data, len);
+    }
 
     set_api_frame(TxReq64Bit, frame_data, TX_REQUEST_OVERHEAD + len);
 }
@@ -45,7 +46,7 @@ TxFrame802::TxFrame802(uint16_t addr16, uint8_t tx_options,
                 const uint8_t *const data, uint16_t len)
 {
     uint8_t frame_data[TX_REQUEST_OVERHEAD2 + len];
-    
+
     _frame_id = get_next_frame_id();
 
     /* copy the frame id, the 16bit remote address, the tx options byte
@@ -55,9 +56,10 @@ TxFrame802::TxFrame802(uint16_t addr16, uint8_t tx_options,
     frame_data[1] = (uint8_t)(addr16 >> 8);
     frame_data[2] = (uint8_t)addr16;
     frame_data[3] = tx_options;
-        
-    if (len)
+
+    if (len) {
         memcpy(&frame_data[4], data, len);
+    }
 
     set_api_frame(TxReq16Bit, frame_data, TX_REQUEST_OVERHEAD2 + len);
 }

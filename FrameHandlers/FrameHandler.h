@@ -19,7 +19,7 @@
 class FrameHandler
 {
     friend class ApiFrame;
-        
+
     public:
         /** Class constructor
          *
@@ -30,7 +30,7 @@ class FrameHandler
         FrameHandler(const FrameHandler& other); /* Intentionally not implemented */
         /** Class destructor */
         virtual ~FrameHandler();
-        
+
         /** get_type returns the type of frames handled by this handler
          *
          * @returns the frame type handled by the handler
@@ -46,7 +46,7 @@ class FrameHandler
 
     protected:
         /** frame type handled by this handler */
-        ApiFrame::ApiFrameType   _type;   
+        ApiFrame::ApiFrameType   _type;
 };
 
 #endif /* defined(__FRAME_HANDLER_H_) */

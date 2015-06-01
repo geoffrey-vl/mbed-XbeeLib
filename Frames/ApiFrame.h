@@ -16,15 +16,15 @@
 #include "XBee/Addresses.h"
 
 /** Class for XBee API frames */
-class ApiFrame 
+class ApiFrame
 {
     /** Static variable that contains the last frame ID value assigned */
     static uint8_t      last_frame_id;
-    
+
         public:
         /** List of API frames. Note that not all frames are supported by all radios */
         enum ApiFrameType {
-       
+
             TxReq64Bit      = 0x00,     /**< TxReq64Bit: Only for 802.15.4 modules */
             TxReq16Bit      = 0x01,     /**< TxReq16Bit: Only for 802.15.4 modules */
             AtCmd           = 0x08,     /**< AtCmd */
@@ -52,38 +52,38 @@ class ApiFrame
             Many2OneRRInd   = 0xA3,     /**< Many2OneRRInd */
             Invalid         = ~0,       /**< Invalid */
         };
-   
+
         /** Default constructor */
         ApiFrame();
 
-        /** Constructor 
+        /** Constructor
          *
          * @param len length of the API frame (will allocate len bytes).
          */
         ApiFrame(uint16_t len);
-        
-        /** Constructor 
+
+        /** Constructor
          *
          * @param type frame type of this api frame.
          * @param data pointer to frame data payload.
          * @param len length of the payload.
          */
         ApiFrame(ApiFrameType type, const uint8_t *data, uint16_t len);
-        
+
         /** Destructor */
         ~ApiFrame();
 
         ApiFrame(const ApiFrame& other); /* Intentionally not implemented */
 
-        /** get_frame_type gets the type of the frame 
+        /** get_frame_type gets the type of the frame
          *
          * @returns the type of this frame.
          */
         ApiFrameType get_frame_type() const;
-        
+
         /** dump dumps the information of this frame */
         void dump() const;
-        
+
         /** dump_if dumps the information of the frame if the frame type matches
          *          with the parameter.
          *
@@ -97,7 +97,7 @@ class ApiFrame
          * @param type the type we want to set on the frame.
          */
         void set_frame_type(ApiFrameType type);
-        
+
         /** get_data_len gets the length of the frame data payload.
          *
          * @returns the length of the data payload.
@@ -109,19 +109,19 @@ class ApiFrame
          * @param len the length of the data payload will be set on this frame.
          */
         void set_data_len(uint16_t len);
-        
+
         /** get_data returns a pointer to the frame data payload.
          *
          * @returns a pointer to the frame data payload.
          */
         const uint8_t *get_data() const;
-        
+
         /** get_data_at returns the byte at index offset.
          *
          * @param index offset of the byte we want to get.
          * @returns the byte at index offset.
          */
-        uint8_t get_data_at(uint16_t index) const; 
+        uint8_t get_data_at(uint16_t index) const;
 
         /** set_data sets data byte at the specified index or offset.
          *
@@ -140,30 +140,30 @@ class ApiFrame
         {
             return last_frame_id;
         }
-    
+
     protected:
         /** Type of this frame */
         ApiFrameType        _type;
 
-        /** length of the payload, excluding the frame type */    
+        /** length of the payload, excluding the frame type */
         uint16_t            _data_frame_len;
 
-        /** pointer to the frame data */    
+        /** pointer to the frame data */
         uint8_t             *_data;
 
-        /** True if the constructor allocates the data. Needed to delete it on the destructor */    
+        /** True if the constructor allocates the data. Needed to delete it on the destructor */
         bool                _alloc_data;
-    
+
         /** Frame ID of this frame */
         uint8_t             _frame_id;
-    
+
         /** get_next_frame_id - returns the next frame ID secuentially, skipping the value 0
          *
          *  @returns the next frame ID that should be assigned to a frame
          */
         uint8_t get_next_frame_id();
 
-        /** set_api_frame sets several members  
+        /** set_api_frame sets several members
          *
          * @param type frame type of this api frame.
          * @param data pointer to frame data payload.

@@ -22,24 +22,23 @@ FH_ModemStatus::~FH_ModemStatus()
 {
 }
 
-/**  */
 void FH_ModemStatus::register_modem_status_cb(modem_status_cb_t function)
 {
-    modem_status_cb = function;    
+    modem_status_cb = function;
 }
 
-/**  */
 void FH_ModemStatus::unregister_modem_status_cb(void)
 {
-    modem_status_cb = NULL;    
+    modem_status_cb = NULL;
 }
 
 void FH_ModemStatus::process_frame_data(const ApiFrame *const frame)
 {
-    /* The caller checks that the type matches, so no need to check it here again */        
-    
-    if (modem_status_cb == NULL)
+    /* The caller checks that the type matches, so no need to check it here again */
+
+    if (modem_status_cb == NULL) {
         return;
+    }
 
     modem_status_cb((AtCmdFrame::ModemStatus)frame->get_data_at(0));
 }

@@ -9,19 +9,19 @@
  * Digi International Inc. 11001 Bren Road East, Minnetonka, MN 55343
  * =======================================================================
  */
- 
+
 /** @file
  */
 
 #ifndef __XBEE_H_
 #define __XBEE_H_
 
-#define XB_LIBRARY_VERSION          0x00010500U
+#define XB_LIBRARY_VERSION          0x01000007U
 #define XB_MAJOR_VERSION            ((XB_LIBRARY_VERSION >> 24) & 0xFFU)
 #define XB_MINOR_VERSION            ((XB_LIBRARY_VERSION >> 16) & 0xFFU)
 #define XB_PATCH_LEVEL              ((XB_LIBRARY_VERSION >> 8) & 0xFFU)
 #define XB_BUILD_ID                 (XB_LIBRARY_VERSION & 0xFFU)
- 
+
 /**/
 #define XB_LIB_BANNER               "\r\n\r\n" "mbed Digi International Inc., XBeeLib v%d.%d.%d" "\r\n", \
                                         XB_MAJOR_VERSION, XB_MINOR_VERSION, XB_PATCH_LEVEL

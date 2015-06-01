@@ -32,14 +32,12 @@ class FH_ModemStatus : public FrameHandler
         virtual ~FH_ModemStatus();
 
          /** Method called by the stack to process the modem status frame data
-                
+
              \param frame pointer pointing to api frame that must be processed */
         virtual void process_frame_data(const ApiFrame *const frame);
-        
-        /**  */
+
         virtual void register_modem_status_cb(modem_status_cb_t function);
 
-        /**  */
         virtual void unregister_modem_status_cb(void);
 };
 

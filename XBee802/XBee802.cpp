@@ -19,11 +19,10 @@ using namespace XBeeLib;
 /* Class constructor */
 XBee802::XBee802(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
         XBee(tx, rx, reset, rts, cts, baud),
-        _sync_lost_cnt(0), _nd_handler(NULL), _rx_64b_handler(NULL), _rx_16b_handler(NULL),
+        _nd_handler(NULL), _rx_64b_handler(NULL), _rx_16b_handler(NULL),
         _io_data_64b_handler(NULL), _io_data_16b_handler(NULL)
 {
 
-    _reset_timeout = RESET_TIMEOUT_MS;
 }
 
 /* Class destructor */
@@ -37,6 +36,14 @@ XBee802::~XBee802()
 RadioStatus XBee802::init()
 {
     RadioStatus retval = XBee::init();
+    uint16_t addr16;
+    RadioStatus error = get_network_address(&addr16);
+    if (error == Success) {
+        digi_log(LogLevelInfo, "ADDR16: %04x\r\n", addr16);
+    } else {
+        digi_log(LogLevelInfo, "ADDR16: UNKNOWN\r\n");
+    }
+
     const RadioProtocol radioProtocol = get_radio_protocol();
     if (radioProtocol != Raw_802_15_4) {
         digi_log(LogLevelError, "Radio protocol does not match, needed a %d got a %d\r\n", Raw_802_15_4, radioProtocol);
@@ -77,8 +84,9 @@ RadioStatus XBee802::get_channel(uint8_t * const  channel)
 
     uint32_t var32;
     cmdresp = get_param("CH", &var32);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
     *channel = var32;
     return Success;
 }
@@ -103,8 +111,9 @@ RadioStatus XBee802::get_panid(uint16_t * const  panid)
 
     uint32_t var32;
     cmdresp = get_param("ID", &var32);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
     *panid = var32;
     return Success;
 }
@@ -123,15 +132,14 @@ RadioStatus XBee802::set_network_address(uint16_t  addr16)
 void XBee802::radio_status_update(AtCmdFrame::ModemStatus modem_status)
 {
     /* Update the radio status variables */
-    if (modem_status == AtCmdFrame::HwReset)
+    if (modem_status == AtCmdFrame::HwReset) {
         _hw_reset_cnt++;
-    else if (modem_status == AtCmdFrame::WdReset)
+    } else if (modem_status == AtCmdFrame::WdReset) {
         _wd_reset_cnt++;
-    else if (modem_status == AtCmdFrame::SyncLost)
-        _sync_lost_cnt++;
+    }
 
     _modem_status = modem_status;
-    
+
     digi_log(LogLevelDebug, "\r\nUpdating radio status: %02x\r\n", modem_status);
 }
 
@@ -172,10 +180,16 @@ TxStatus XBee802::send_data(const RemoteXBee& remote, const uint8_t *const data,
     return TxStatusInvalidAddr;
 }
 
+XBee802::AssocStatus XBee802::get_assoc_status(void)
+{
+    return (AssocStatus)get_AI();
+}
+
 RemoteXBee802 XBee802::get_remote_node_by_id(const char * const node_id)
 {
     uint64_t addr64;
     uint16_t addr16;
+
     _get_remote_node_by_id(node_id, &addr64, &addr16);
     return RemoteXBee802(addr64, addr16);
 }
@@ -419,21 +433,18 @@ RadioStatus XBee802::set_pwm(const RemoteXBee& remote, IoLine line, float duty_c
 {
     AtCmdFrame::AtCmdResp cmdresp;
     char iocmd[3] = { 'M', '0', '\0' };
-    
+
     if (line != PWM0 && line != PWM1) {
         return Failure;
     }
     if (line == PWM1) {
         iocmd[1] = '1';
     }
-        
+
     uint16_t pwm_val = (uint16_t)(duty_cycle * DR_PWM_MAX_VAL / 100);
 
     cmdresp = set_param(remote, iocmd, pwm_val);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    
-    return Success;
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
 IOSample802 XBee802::get_iosample(const RemoteXBee& remote)
@@ -478,8 +489,9 @@ RadioStatus XBee802::set_pin_pull_up(const RemoteXBee& remote, IoLine line, bool
     uint8_t pr;
 
     cmdresp = get_param(remote, "PR", &var32);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
     pr = var32;
 
     const uint8_t dio_mask = get_dio_mask(line);
@@ -495,10 +507,7 @@ RadioStatus XBee802::set_pin_pull_up(const RemoteXBee& remote, IoLine line, bool
     }
 
     cmdresp = set_param(remote, "PR", pr);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-
-    return Success;
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
 static uint8_t get_dio_ic_mask(XBee802::IoLine line)
@@ -539,29 +548,29 @@ RadioStatus XBee802::enable_dio_change_detection(const RemoteXBee& remote, IoLin
     }
 
     cmdresp = set_param(remote, "IC", ic);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-
-    return Success;
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
-    
+
 #ifdef GET_PWM_AVAILABLE
 RadioStatus XBee802::get_pwm(const RemoteXBee& remote, IoLine line, float * const duty_cycle)
 {
     AtCmdFrame::AtCmdResp cmdresp;
     char iocmd[3] = { 'M', '0', '\0' };
-    
-    if (line != PWM0 && line != PWM1)
-        return Failure;
 
-    if (line == PWM1)
+    if (line != PWM0 && line != PWM1) {
+        return Failure;
+    }
+
+    if (line == PWM1) {
         iocmd[1] = '1';
-        
+    }
+
     uint16_t pwm_val;
 
     cmdresp = get_param(remote, iocmd, &pwm_val);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
 
     *duty_cycle = (float)(pwm_val * 100 / DR_PWM_MAX_VAL);
 

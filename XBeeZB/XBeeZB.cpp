@@ -16,33 +16,17 @@
 
 using namespace XBeeLib;
 
+#define BROADCAST_RADIUS_USE_NH 0x00
+
 /* Class constructor */
 XBeeZB::XBeeZB(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
-         XBee(tx, rx, reset, rts, cts, baud), _nw_role(UnknownRole), _joined_network(false),
-        _vcc_exceeded_cnt(0), _broadcast_radious(0), _nd_handler(NULL), 
-        _rx_pkt_handler(NULL), _io_data_handler(NULL)
+         XBee(tx, rx, reset, rts, cts, baud), _nd_handler(NULL), _rx_pkt_handler(NULL), _io_data_handler(NULL)
 {
-    _reset_timeout = RESET_TIMEOUT_MS;
 }
 
 RadioStatus XBeeZB::init()
 {
     RadioStatus retval = XBee::init();
-    /* Determine the role of this device in the network */
-    switch(_fw_version & 0xFF00) {
-        case 0x2100:
-            _nw_role = Coordinator;
-            break;
-        case 0x2300:
-            _nw_role = Router;
-            break;
-        case 0x2900:
-            _nw_role = EndDevice;
-            break;
-        default:
-            _nw_role = UnknownRole;
-            break;
-    }
 
     const RadioProtocol radioProtocol = get_radio_protocol();
     if (radioProtocol != ZigBee) {
@@ -82,8 +66,9 @@ RadioStatus XBeeZB::get_channel_mask(uint16_t * const  chmask)
 
     uint32_t var32;
     cmdresp = get_param("SC", &var32);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
     *chmask = var32;
     return Success;
 }
@@ -205,45 +190,18 @@ RadioStatus XBeeZB::check_for_coordinator_at_start(bool enable)
     AtCmdFrame::AtCmdResp cmdresp;
 
     cmdresp = set_param("JV", (uint8_t)enable);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    return Success;
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
-RadioStatus XBeeZB::enable_network_encryption(bool enable)
+RadioStatus XBeeZB::set_network_security_key(const uint8_t * const key, const uint16_t length)
 {
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = set_param("EE", enable);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    return Success;
-}
-
-RadioStatus XBeeZB::set_encryption_key(const uint8_t * const key, const uint16_t length)
-{
-    if (key == NULL || length == 0) {
+    if (key == NULL || length == 0 || length > 16) {
         return Failure;
     }
     AtCmdFrame::AtCmdResp cmdresp;
 
     cmdresp = set_param("NK", key, length);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    return Success;
-}
-
-RadioStatus XBeeZB::set_tc_link_key(const uint8_t * const key, const uint16_t length)
-{
-    if (key == NULL || length == 0) {
-        return Failure;
-    }
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = set_param("KY", key, length);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    return Success;
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
 RadioStatus XBeeZB::set_encryption_options(const uint8_t options)
@@ -251,9 +209,7 @@ RadioStatus XBeeZB::set_encryption_options(const uint8_t options)
     AtCmdFrame::AtCmdResp cmdresp;
 
     cmdresp = set_param("EO", options);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
-        return Failure;
-    return Success;
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
 void XBeeZB::radio_status_update(AtCmdFrame::ModemStatus modem_status)
@@ -261,18 +217,9 @@ void XBeeZB::radio_status_update(AtCmdFrame::ModemStatus modem_status)
     /* Update the radio status variables */
     if (modem_status == AtCmdFrame::HwReset) {
         _hw_reset_cnt++;
-        _joined_network = false;
-    }
-    else if (modem_status == AtCmdFrame::WdReset) {
+    } else if (modem_status == AtCmdFrame::WdReset) {
         _wd_reset_cnt++;
-        _joined_network = false;
     }
-    else if (modem_status == AtCmdFrame::JoinedNW)
-        _joined_network = true;
-    else if (modem_status == AtCmdFrame::Disassociated)
-        _joined_network = false;
-    else if (modem_status == AtCmdFrame::VccExceeded)
-        _vcc_exceeded_cnt++;
 
     _modem_status = modem_status;
 
@@ -281,13 +228,14 @@ void XBeeZB::radio_status_update(AtCmdFrame::ModemStatus modem_status)
 
 TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr)
 {
-    if (!remote.is_valid_addr64b())
+    if (!remote.is_valid_addr64b()) {
         return TxStatusInvalidAddr;
+    }
 
     const uint64_t remote64 = remote.get_addr64();
     const uint16_t remote16 = remote.get_addr16();
 
-    TxFrameZB frame = TxFrameZB(remote64, remote16, _broadcast_radious,
+    TxFrameZB frame = TxFrameZB(remote64, remote16, BROADCAST_RADIUS_USE_NH,
                                 _tx_options, data, len);
     if (syncr) {
         return send_data(&frame);
@@ -298,18 +246,19 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, 
     }
 }
 
-TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep, 
+TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep,
                                 uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
                                 const uint8_t *const data, uint16_t len, bool syncr)
 {
-    if (!remote.is_valid_addr64b())
+    if (!remote.is_valid_addr64b()) {
         return TxStatusInvalidAddr;
+    }
 
     const uint64_t remote64 = remote.get_addr64();
     const uint16_t remote16 = remote.get_addr16();
 
     TxFrameZB frame = TxFrameZB(remote64, remote16, source_ep, dest_ep,
-                                cluster_id, profile_id, _broadcast_radious,
+                                cluster_id, profile_id, BROADCAST_RADIUS_USE_NH,
                                 _tx_options, data, len);
     if (syncr) {
         return send_data(&frame);
@@ -317,16 +266,14 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep,
         frame.set_data(0, 0); /* Set frame id to 0 so there is no answer */
         send_api_frame(&frame);
         return TxStatusSuccess;
-
     }
 }
-                              
+
 TxStatus XBeeZB::send_data_to_coordinator(const uint8_t *const data, uint16_t len, bool syncr)
 {
     const uint64_t remaddr = ADDR64_COORDINATOR;
-    
-    TxFrameZB frame = TxFrameZB(remaddr, ADDR16_UNKNOWN, _broadcast_radious,
-                                _tx_options, data, len);
+
+    TxFrameZB frame = TxFrameZB(remaddr, ADDR16_UNKNOWN, BROADCAST_RADIUS_USE_NH, _tx_options, data, len);
     if (syncr) {
         return send_data(&frame);
     } else {
@@ -344,14 +291,14 @@ RemoteXBeeZB XBeeZB::get_remote_node_by_id(const char * const node_id)
     return RemoteXBeeZB(addr64, addr16);
 }
 
-NetworkRole XBeeZB::get_network_role()
+XBeeZB::AssocStatus XBeeZB::get_assoc_status(void)
 {
-    return _nw_role;
+    return (AssocStatus)get_AI();
 }
 
 bool XBeeZB::is_joined()
 {
-    return _joined_network;
+    return get_assoc_status() == Joined ? true : false;
 }
 
 void XBeeZB::register_node_discovery_cb(node_discovery_zb_cb_t function)
@@ -413,8 +360,9 @@ void XBeeZB::unregister_io_sample_cb()
 
 AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * const param, uint32_t * const data)
 {
-    if (!remote.is_valid_addr64b())
+    if (!remote.is_valid_addr64b()) {
         return AtCmdFrame::AtCmdRespInvalidAddr;
+    }
 
     const uint64_t remote64 = remote.get_addr64();
     const uint16_t remote16 = remote.get_addr16();
@@ -424,16 +372,18 @@ AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * c
     AtCmdFrame cmd_frame = AtCmdFrame(remote64, remote16, param);
     atCmdResponse = send_at_cmd(&cmd_frame, (uint8_t *)data, &len, RadioRemote);
 
-    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len > sizeof *data)
+    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len > sizeof *data) {
         atCmdResponse = AtCmdFrame::AtCmdRespLenMismatch;
+    }
 
     return atCmdResponse;
 }
 
 AtCmdFrame::AtCmdResp XBeeZB::set_param(const RemoteXBee& remote, const char * const param, uint32_t data)
 {
-    if (!remote.is_valid_addr64b())
+    if (!remote.is_valid_addr64b()) {
         return AtCmdFrame::AtCmdRespInvalidAddr;
+    }
 
     const uint64_t remote64 = remote.get_addr64();
     const uint16_t remote16 = remote.get_addr16();
@@ -444,8 +394,9 @@ AtCmdFrame::AtCmdResp XBeeZB::set_param(const RemoteXBee& remote, const char * c
 
 AtCmdFrame::AtCmdResp XBeeZB::set_param(const RemoteXBee& remote, const char * const param, const uint8_t * data, uint16_t len)
 {
-    if (!remote.is_valid_addr64b())
+    if (!remote.is_valid_addr64b()) {
         return AtCmdFrame::AtCmdRespInvalidAddr;
+    }
 
     const uint64_t remote64 = remote.get_addr64();
     const uint16_t remote16 = remote.get_addr16();
@@ -457,8 +408,9 @@ AtCmdFrame::AtCmdResp XBeeZB::set_param(const RemoteXBee& remote, const char * c
 AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * const param, uint8_t * const data, uint16_t * const len)
 {
 
-    if (!remote.is_valid_addr64b())
+    if (!remote.is_valid_addr64b()) {
         return AtCmdFrame::AtCmdRespInvalidAddr;
+    }
 
     const uint64_t remote64 = remote.get_addr64();
     const uint16_t remote16 = remote.get_addr16();
@@ -514,10 +466,7 @@ RadioStatus XBeeZB::get_pin_config(const RemoteXBee& remote, IoLine line, IoMode
 
 RadioStatus XBeeZB::set_dio(const RemoteXBee& remote, IoLine line, DioVal val)
 {
-    if (val == Low)
-        return set_pin_config(remote, line, DigitalOutLow);
-    else
-        return set_pin_config(remote, line, DigitalOutHigh);
+    return set_pin_config(remote, line, val == Low ? DigitalOutLow : DigitalOutHigh);
 }
 
 RadioStatus XBeeZB::get_dio(const RemoteXBee& remote, IoLine line, DioVal * const val)
@@ -599,8 +548,9 @@ RadioStatus XBeeZB::set_pin_pull_up(const RemoteXBee& remote, IoLine line, bool 
     }
 
     cmdresp = set_param(remote, "PR", pr);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
 
     return Success;
 }
@@ -643,8 +593,9 @@ RadioStatus XBeeZB::enable_dio_change_detection(const RemoteXBee& remote, IoLine
     }
 
     cmdresp = set_param(remote, "IC", ic);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk)
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
+    }
 
     return Success;
 }

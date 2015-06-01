@@ -96,8 +96,7 @@ inline uint8_t IOSample802::get_dio_channels(void) const
 {
     if (dio_channels_present()) {
         return UINT16(_sampled_data[0], _sampled_data[1]);
-    }
-    else {
+    } else {
         return 0;
     }
 }

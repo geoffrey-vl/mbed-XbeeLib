@@ -31,14 +31,14 @@ namespace XBeeLib {
 typedef void (*receive_zb_cb_t)(const RemoteXBeeZB& remote, bool broadcast, const uint8_t *const data, uint16_t len);
 /**
  * @}
- */ 
+ */
 
 class FH_RxPacketZB : public FrameHandler
 {
     private:
         /** Callback function, invoked if registered */
         receive_zb_cb_t receive_cb;
-       
+
     public:
         /** Class constructor */
         FH_RxPacketZB();
@@ -47,14 +47,12 @@ class FH_RxPacketZB : public FrameHandler
         virtual ~FH_RxPacketZB();
 
         /** Method called by the stack to process the modem status frame data
-                
+
             \param frame pointer pointing to api frame that must be processed */
         virtual void process_frame_data(const ApiFrame* const frame);
 
-        /**  */
         void register_receive_cb(receive_zb_cb_t function);
 
-        /**  */
         void unregister_receive_cb();
 };
 

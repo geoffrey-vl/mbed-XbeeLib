@@ -41,7 +41,29 @@ class XBee802 : public XBee
             PWM0,         /**< PWM0 pin */
             PWM1           /**< PWM1 pin */
         };
-  
+
+        enum AssocStatus {
+            ErrorReading        = -1,       /**< Error occurred when reading parameter. */
+            Joined              = 0x00,     /**< Successful Completion - Coordinator successfully started or End Device association complete. */
+            ActiveScanTimeOut   = 0x01,     /**< Active Scan Timeout. */
+            NoPANs              = 0x02,     /**< Active Scan found no PANs. */
+            JoinNotAllowed      = 0x03,     /**< Active Scan found PAN, but the Coordinator's Allow Association bit is not set. */
+            BeaconsFailed       = 0x04,     /**< Active Scan found PAN, but Coordinator and End Device are not configured to support beacons. */
+            BadPAN              = 0x05,     /**< Active Scan found PAN, but Coordinator ID (PAN ID) value does not match the ID of the End Device. */
+            BadChannel          = 0x06,     /**< Active Scan found PAN, but Coordinator CH (Channel) value does not match the CH of the End Device */
+            EnergyScanTimeout   = 0x07,     /**< Energy Scan timed out. */
+            CoordStartFailed    = 0x08,     /**< Coordinator start request failed. */
+            CoordBadParameters  = 0x09,     /**< Coordinator could not start due to Invalid Parameter. */
+            CoordRealignment    = 0x0A,     /**< Coordinator Realignment is in progress. */
+            AssocReqNotSent     = 0x0B,     /**< Association Request not sent. */
+            AssocReqTimeout     = 0x0C,     /**< Association Request timed out - no reply was received. */
+            AssocReqInvalidPara = 0x0D,     /**< Association Request had an Invalid Parameter. */
+            AssocReqChannelFail = 0x0E,     /**< Association Request Channel Access Failure - Request was not transmitted - CCA failure. */
+            RemCoordNoACK       = 0x0F,     /**< Remote Coordinator did not send an ACK after Association Request was sent. */
+            RemCoordLateACK     = 0x10,     /**< Remote Coordinator did not reply to the Association Request, but an ACK was received after sending the request. */
+            Associating         = 0xFF      /**< RF Module is attempting to associate. */
+        };
+
         /** Class constructor
          * @param tx the TX pin of the UART that will interface the XBee module
          * @param rx the RX pin of the UART that will interface the XBee module
@@ -52,10 +74,10 @@ class XBee802 : public XBee
          * to this baud rate (ATBD parameter). By default it is configured to 9600 bps
          */
         XBee802(PinName tx, PinName rx, PinName reset = NC, PinName rts = NC, PinName cts = NC, int baud = 9600);
- 
+
         /** Class destructor */
         virtual ~XBee802();
-        
+
         /** init -  initializes object
          * This function must be called just after creating the object so it initializes internal data.
          * @returns
@@ -64,7 +86,7 @@ class XBee802 : public XBee
          */
         RadioStatus init();
 
-        /** set_panid - sets the 16 bit PAN ID.        
+        /** set_panid - sets the 16 bit PAN ID.
          *
          *  @param panid the PAN ID value that will be set on the radio
          *  @returns
@@ -72,7 +94,7 @@ class XBee802 : public XBee
          *     Failure otherwise
          */
         RadioStatus set_panid(uint16_t panid);
-        
+
         /** get_panid - gets the configured 16 bit PAN ID
          *
          *  @param panid pointer where the read PAN ID value will be stored
@@ -81,7 +103,7 @@ class XBee802 : public XBee
          *     Failure otherwise
          */
         RadioStatus get_panid(uint16_t * const panid);
-        
+
         /** set_channel - sets the network channel number
          *
          *  @param channel the channel in which the radio operates. Range is 0x0B - 0x1A for XBee and 0x0C - 0x17 for XBee-PRO.
@@ -129,7 +151,7 @@ class XBee802 : public XBee
 
         /** unregister_receive_cb - removes the rx packet callback */
         void unregister_receive_cb();
-        
+
         /** register_io_sample_cb - registers the callback function that will be called
          * when a IO Sample Data packet is received
          *
@@ -153,6 +175,12 @@ class XBee802 : public XBee
          */
         virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr = true);
 
+        /** get_assoc_status - returns current network association status. This wraps AI parameter, for more information refer to moudle's Reference Manual.
+         *
+         *  @returns an AssocStatus with current network association status.
+         */
+        AssocStatus get_assoc_status(void);
+
         /** get_remote_node_by_id - searches for a device in the network with the specified Node Identifier.
          *
          *  @param node_id node id of the device we are looking for
@@ -172,12 +200,12 @@ class XBee802 : public XBee
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp set_param(const RemoteXBee& remote, const char * const param, uint32_t data);
-        
+
         /** set_param - sets a parameter in a remote radio by sending an AT command and waiting for the response.
          *
          *  @param remote remote device
          *  @param param parameter to be set.
-         *  @param the parameter value byte array (len bytes) to be set. 
+         *  @param the parameter value byte array (len bytes) to be set.
          *  @param len number of bytes of the parameter value.
          *  @returns the command response status.
          */
@@ -185,22 +213,22 @@ class XBee802 : public XBee
 
         /* Allow using XBee::get_param() methods for local radio from this class */
         using XBee::get_param;
-        
+
         /** get_param - gets a parameter from a remote radio by sending an AT command and waiting for the response.
          *
          *  @param remote remote device
          *  @param param parameter to be get.
-         *  @param data pointer where the param value (4 bytes) will be stored. 
+         *  @param data pointer where the param value (4 bytes) will be stored.
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp get_param(const RemoteXBee& remote, const char * const param, uint32_t * const data);
-      
+
         /** get_param - gets a parameter from a remote radio by sending an AT command and waiting for the response.
          *
          *  @param remote remote device
          *  @param param parameter to be get.
-         *  @param data pointer where the param value (n bytes) will be stored. 
-         *  @param len pointer where the number of bytes of the param value will be stored. 
+         *  @param data pointer where the param value (n bytes) will be stored.
+         *  @param len pointer where the number of bytes of the param value will be stored.
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp get_param(const RemoteXBee& remote, const char * const param, uint8_t * const data, uint16_t * const len);
@@ -323,17 +351,14 @@ class XBee802 : public XBee
             return (_hw_version & 0xFF00U) == 0x1800U;
         }
 
-        /** Synchronization lost counter, automatically updated by the library */
-        volatile uint16_t    _sync_lost_cnt;
-
         /** Frame handler used for the node discovery. Registered when a callback function
          * is registered */
         FH_NodeDiscovery802  *_nd_handler;
-        
+
          /** Frame handler used for the rx 64 bit packets. Automatically registered when a callback
-         *  function is registered */         
+         *  function is registered */
         FH_RxPacket64b802  *_rx_64b_handler;
-        
+
          /** Frame handler used for the rx 16 bit packets. Automatically registered when a callback
          *  function is registered */
         FH_RxPacket16b802  *_rx_16b_handler;
@@ -346,13 +371,13 @@ class XBee802 : public XBee
         *  function is registered */
         FH_IoDataSampe16b802  *_io_data_16b_handler;
 
-        /** Method called directly by the library when a modem status frame is received to 
+        /** Method called directly by the library when a modem status frame is received to
          * update the internal status variables */
         virtual void radio_status_update(AtCmdFrame::ModemStatus modem_status);
 
         /* Allow using XBee::send_data() methods from this class */
         using XBee::send_data;
-    
+
     private:
 
 };

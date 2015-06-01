@@ -20,7 +20,7 @@
 void AtCmdFrame::build_at_cmd_frame(const char *cmd, const uint8_t *cmd_params, uint8_t payload_len, bool reverse)
 {
     uint8_t frame_data[AT_CMD_LEN + AT_CMD_ID_LEN + payload_len];
-    
+
     frame_data[0] = _frame_id;
     frame_data[1] = cmd[0];
     frame_data[2] = cmd[1];
@@ -65,7 +65,7 @@ AtCmdFrame::AtCmdFrame(uint64_t remote, const char * const cmd, uint32_t cmd_par
 {
     assert(cmd != NULL);
     assert(strlen(cmd) == AT_CMD_LEN);
-    
+
     build_at_cmd_remote_frame(remote, ADDR16_UNKNOWN, cmd, (uint8_t *)&cmd_param, 4);
 }
 
@@ -81,7 +81,7 @@ AtCmdFrame::AtCmdFrame(uint16_t remote, const char * const cmd, uint32_t cmd_par
 {
     assert(cmd != NULL);
     assert(strlen(cmd) == AT_CMD_LEN);
-    
+
     build_at_cmd_remote_frame(ADDR64_UNASSIGNED, remote, cmd, (uint8_t *)&cmd_param, 4);
 }
 
@@ -97,7 +97,7 @@ AtCmdFrame::AtCmdFrame(uint64_t remote64, uint16_t remote16, const char * const 
 {
     assert(cmd != NULL);
     assert(strlen(cmd) == AT_CMD_LEN);
-    
+
     build_at_cmd_remote_frame(remote64, remote16, cmd, (uint8_t *)&cmd_param, 4);
 }
 
@@ -123,7 +123,7 @@ void AtCmdFrame::build_at_cmd_remote_frame(uint64_t remote64, uint16_t remote16,
                 const char *const cmd, const uint8_t *const cmd_params, uint8_t params_len, bool reverse)
 {
     uint8_t frame_data[REM_AT_CMD_OVERHEAD + params_len];
-    
+
     /* copy the frame id, the 64bit remote address, the 16bit network address,
      *  the options byte, the command and the command params */
 
@@ -134,7 +134,7 @@ void AtCmdFrame::build_at_cmd_remote_frame(uint64_t remote64, uint16_t remote16,
     frame_data[11] = 0x02; /* TODO Options */
     frame_data[12] = cmd[0];
     frame_data[13] = cmd[1];
-        
+
     if (params_len) {
         if (reverse) {
             rmemcpy(&frame_data[14], cmd_params, params_len);

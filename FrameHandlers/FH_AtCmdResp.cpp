@@ -16,12 +16,12 @@
 using namespace XBeeLib;
 
 /** Class constructor */
-FH_AtCmdResp::FH_AtCmdResp() : 
+FH_AtCmdResp::FH_AtCmdResp() :
     FrameHandler(ApiFrame::AtCmdResp), at_cmd_resp_cb(NULL)
 {
 }
 
-FH_AtCmdResp::FH_AtCmdResp(ApiFrame::ApiFrameType type) : 
+FH_AtCmdResp::FH_AtCmdResp(ApiFrame::ApiFrameType type) :
     FrameHandler(type), at_cmd_resp_cb(NULL)
 {
 }
@@ -31,13 +31,11 @@ FH_AtCmdResp::~FH_AtCmdResp()
 {
 }
 
-/**  */
 void FH_AtCmdResp::register_at_cmd_resp_cb(at_cmd_resp_cb_t function)
 {
-    at_cmd_resp_cb = function;    
+    at_cmd_resp_cb = function;
 }
 
-/**  */
 void FH_AtCmdResp::unregister_at_cmd_resp_cb()
 {
     at_cmd_resp_cb = NULL;
@@ -45,17 +43,18 @@ void FH_AtCmdResp::unregister_at_cmd_resp_cb()
 
 void FH_AtCmdResp::process_frame_data(const ApiFrame * const frame)
 {
-    /* The caller checks that the type matches, so no need to check it here again */        
-    
-    if (at_cmd_resp_cb == NULL)
+    /* The caller checks that the type matches, so no need to check it here again */
+
+    if (at_cmd_resp_cb == NULL) {
         return;
-    
+    }
+
     at_cmd_resp_cb(frame->get_data(), frame->get_data_len());
 }
 
 
 /** Class constructor */
-FH_NodeDiscoveryZB::FH_NodeDiscoveryZB() : 
+FH_NodeDiscoveryZB::FH_NodeDiscoveryZB() :
     FH_AtCmdResp(ApiFrame::AtCmdResp), node_discovery_cb(NULL)
 {
 }
@@ -65,13 +64,11 @@ FH_NodeDiscoveryZB::~FH_NodeDiscoveryZB()
 {
 }
 
-/**  */
 void FH_NodeDiscoveryZB::register_node_discovery_cb(node_discovery_zb_cb_t function)
 {
-    node_discovery_cb = function;    
+    node_discovery_cb = function;
 }
 
-/**  */
 void FH_NodeDiscoveryZB::unregister_node_discovery_cb()
 {
     node_discovery_cb = NULL;
@@ -80,17 +77,17 @@ void FH_NodeDiscoveryZB::unregister_node_discovery_cb()
 
 void FH_NodeDiscoveryZB::process_frame_data(const ApiFrame *const frame)
 {
-    /* The caller checks that the type matches, so no need to check it here again */        
-    
+    /* The caller checks that the type matches, so no need to check it here again */
+
     if (node_discovery_cb == NULL) {
         return;
     }
 
-    if (frame->get_data_at(ATCMD_RESP_CMD_LOW_OFFSET) != 'N' || 
+    if (frame->get_data_at(ATCMD_RESP_CMD_LOW_OFFSET) != 'N' ||
         frame->get_data_at(ATCMD_RESP_CMD_HIGH_OFFSET) != 'D') {
         return;
     }
-    
+
     if (frame->get_data_at(ATCMD_RESP_STATUS_OFFSET) != AtCmdFrame::AtCmdRespOk) {
         return;
     }
@@ -99,14 +96,6 @@ void FH_NodeDiscoveryZB::process_frame_data(const ApiFrame *const frame)
     const uint16_t addr16 = UINT16(data[ATCMD_RESP_NW_ADDR_H_OFFSET], data[ATCMD_RESP_NW_ADDR_L_OFFSET]);
     const uint64_t addr64 = addr64_from_uint8_t(&data[ATCMD_RESP_SH_ADDR_L_OFFSET]);
     const char * const node_id = (const char *)&data[ATCMD_RESP_NI_OFFSET];
-#if 0
-    const unsigned int node_id_len = strlen(node_id);
-    const unsigned int parent_addr16_offset = ATCMD_RESP_NI_OFFSET + node_id_len + sizeof "";
-    const uint16_t parent_addr16 = UINT16(data[parent_addr16_offset], data[parent_addr16_offset + 1]);
-    const NetworkRole network_role = (NetworkRole)(data[parent_addr16_offset + 2]);
-    const uint16_t profile_id = UINT16(data[parent_addr16_offset + 4], data[parent_addr16_offset + 5]);
-    const uint16_t manuf_id = UINT16(data[parent_addr16_offset + 6], data[parent_addr16_offset + 7]);
-#endif
     RemoteXBeeZB remote = RemoteXBeeZB(addr64, addr16);
 
     node_discovery_cb(remote, node_id);
@@ -115,7 +104,7 @@ void FH_NodeDiscoveryZB::process_frame_data(const ApiFrame *const frame)
 
 
 /** Class constructor */
-FH_NodeDiscovery802::FH_NodeDiscovery802() : 
+FH_NodeDiscovery802::FH_NodeDiscovery802() :
     FH_AtCmdResp(ApiFrame::AtCmdResp), node_discovery_cb(NULL)
 {
 }
@@ -125,13 +114,11 @@ FH_NodeDiscovery802::~FH_NodeDiscovery802()
 {
 }
 
-/**  */
 void FH_NodeDiscovery802::register_node_discovery_cb(node_discovery_802_cb_t function)
 {
-    node_discovery_cb = function;    
+    node_discovery_cb = function;
 }
 
-/**  */
 void FH_NodeDiscovery802::unregister_node_discovery_cb()
 {
     node_discovery_cb = NULL;
@@ -140,13 +127,13 @@ void FH_NodeDiscovery802::unregister_node_discovery_cb()
 
 void FH_NodeDiscovery802::process_frame_data(const ApiFrame *const frame)
 {
-    /* The caller checks that the type matches, so no need to check it here again */        
+    /* The caller checks that the type matches, so no need to check it here again */
 
     if (node_discovery_cb == NULL) {
         return;
     }
 
-    if (frame->get_data_at(ATCMD_RESP_CMD_LOW_OFFSET) != 'N' || 
+    if (frame->get_data_at(ATCMD_RESP_CMD_LOW_OFFSET) != 'N' ||
         frame->get_data_at(ATCMD_RESP_CMD_HIGH_OFFSET) != 'D') {
         return;
     }
@@ -155,7 +142,7 @@ void FH_NodeDiscovery802::process_frame_data(const ApiFrame *const frame)
         return;
     }
 
-    const uint16_t min_atnd_response_with_data = 2 + 8 + 1;
+    const uint16_t min_atnd_response_with_data = sizeof (uint16_t) + sizeof(uint64_t);
     if (frame->get_data_len() < min_atnd_response_with_data) {
         /* Do not process the ATND "OK" response */
         return;

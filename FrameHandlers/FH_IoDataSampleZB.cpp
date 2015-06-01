@@ -25,16 +25,14 @@ FH_IoDataSampeZB::~FH_IoDataSampeZB()
 {
 }
 
-/**  */
 void FH_IoDataSampeZB::register_io_data_cb(io_data_cb_zb_t function)
 {
-    io_data_cb = function;    
+    io_data_cb = function;
 }
 
-/**  */
 void FH_IoDataSampeZB::unregister_io_data_cb()
 {
-    io_data_cb = NULL;    
+    io_data_cb = NULL;
 }
 
 /* ZB RX packet offsets */
@@ -42,20 +40,20 @@ void FH_IoDataSampeZB::unregister_io_data_cb()
 #define ZB_IO_SAMPLE_ADDR16_LSB_OFFSET      9
 #define ZB_IO_SAMPLE_DATA_OFFSET            11
 
-/**  */
 void FH_IoDataSampeZB::process_frame_data(const ApiFrame *const frame)
 {
     const uint8_t * const datap = frame->get_data();;
-        
+
     /* The caller checks that the type matches, so no need to check it here again */
-    if (io_data_cb == NULL)
+    if (io_data_cb == NULL) {
         return;
+    }
 
     /* We got an IO packet, decode it... */
     const uint64_t sender64 = addr64_from_uint8_t(datap);
     const uint16_t sender16 = ADDR16(datap[ZB_IO_SAMPLE_ADDR16_MSB_OFFSET], datap[ZB_IO_SAMPLE_ADDR16_LSB_OFFSET]);
     const RemoteXBeeZB sender = RemoteXBeeZB(sender64, sender16);
     const IOSampleZB ioSample = IOSampleZB(&datap[ZB_IO_SAMPLE_DATA_OFFSET], frame->get_data_len() - ZB_IO_SAMPLE_DATA_OFFSET);
-    
+
     io_data_cb(sender, ioSample);
 }

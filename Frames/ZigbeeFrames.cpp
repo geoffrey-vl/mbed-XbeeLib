@@ -34,7 +34,7 @@ TxFrameZB::TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t broadcast_rad, uint
                 const uint8_t *const data, uint16_t len)
 {
     uint8_t frame_data[TX_REQUEST_OVERHEAD + len];
-    
+
     _frame_id = get_next_frame_id();
 
     /* copy the frame id, the 64bit remote address, the 16bit network address,
@@ -46,20 +46,21 @@ TxFrameZB::TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t broadcast_rad, uint
     frame_data[10] = (uint8_t)addr16;
     frame_data[11] = broadcast_rad;
     frame_data[12] = tx_opt;
-        
-    if (len)
+
+    if (len) {
         memcpy(&frame_data[13], data, len);
+    }
 
     set_api_frame(TxReqZB, frame_data, TX_REQUEST_OVERHEAD + len);
 }
 
 /** Class constructor */
 TxFrameZB::TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t source_ep, uint8_t dest_ep,
-                  uint16_t cluster_id, uint16_t profile_id, uint8_t broadcast_rad, 
+                  uint16_t cluster_id, uint16_t profile_id, uint8_t broadcast_rad,
                   uint8_t tx_opt, const uint8_t *const data, uint16_t len)
 {
     uint8_t frame_data[EXP_ADDR_OVERHEAD + len];
-    
+
     _frame_id = get_next_frame_id();
 
     /* copy the frame id, the 64bit remote address, the 16bit network address,
@@ -78,9 +79,10 @@ TxFrameZB::TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t source_ep, uint8_t 
     frame_data[16] = (uint8_t)profile_id;
     frame_data[17] = broadcast_rad;
     frame_data[18] = tx_opt;
-        
-    if (len)
+
+    if (len) {
         memcpy(&frame_data[19], data, len);
+    }
 
     set_api_frame(ExpAddrCmd, frame_data, EXP_ADDR_OVERHEAD + len);
 }

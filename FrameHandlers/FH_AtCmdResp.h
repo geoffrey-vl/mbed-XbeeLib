@@ -24,12 +24,12 @@ class FH_AtCmdResp : public FrameHandler
     private:
         /** Callback function, invoked (if registered) when an at command response packet is received */
         at_cmd_resp_cb_t at_cmd_resp_cb;
- 
+
     public:
-    
+
         /** Class constructor */
         FH_AtCmdResp();
-    
+
         /** Class constructor */
         FH_AtCmdResp(ApiFrame::ApiFrameType type);
 
@@ -38,11 +38,9 @@ class FH_AtCmdResp : public FrameHandler
         virtual ~FH_AtCmdResp();
 
         virtual void process_frame_data(const ApiFrame *const frame);
-        
-        /**  */
+
         virtual void register_at_cmd_resp_cb(at_cmd_resp_cb_t function);
 
-        /**  */
         virtual void unregister_at_cmd_resp_cb();
 };
 
@@ -57,16 +55,16 @@ class FH_AtCmdResp : public FrameHandler
 typedef void (*node_discovery_zb_cb_t)(const RemoteXBeeZB& remote, char const * const node_id);
 /**
  * @}
- */ 
+ */
 
 class FH_NodeDiscoveryZB : public FH_AtCmdResp
 {
     private:
         /** Callback function, invoked (if registered) when an at command response packet is received */
         node_discovery_zb_cb_t node_discovery_cb;
- 
+
     public:
-    
+
         /** Class constructor */
         FH_NodeDiscoveryZB();
 
@@ -74,11 +72,9 @@ class FH_NodeDiscoveryZB : public FH_AtCmdResp
         virtual ~FH_NodeDiscoveryZB();
 
         virtual void process_frame_data(const ApiFrame *const frame);
-        
-        /**  */
+
         virtual void register_node_discovery_cb(node_discovery_zb_cb_t function);
 
-        /**  */
         virtual void unregister_node_discovery_cb();
 };
 
@@ -93,16 +89,16 @@ class FH_NodeDiscoveryZB : public FH_AtCmdResp
 typedef void (*node_discovery_802_cb_t)(const RemoteXBee802& remote, char const * const node_id);
 /**
  * @}
- */ 
+ */
 
 class FH_NodeDiscovery802 : public FH_AtCmdResp
 {
     private:
         /** Callback function, invoked (if registered) when an at command response packet is received */
         node_discovery_802_cb_t node_discovery_cb;
- 
+
     public:
-    
+
         /** Class constructor */
         FH_NodeDiscovery802();
 
@@ -110,11 +106,9 @@ class FH_NodeDiscovery802 : public FH_AtCmdResp
         virtual ~FH_NodeDiscovery802();
 
         virtual void process_frame_data(const ApiFrame *const frame);
-        
-        /**  */
+
         virtual void register_node_discovery_cb(node_discovery_802_cb_t function);
 
-        /**  */
         virtual void unregister_node_discovery_cb();
 };
 

@@ -47,44 +47,11 @@ namespace XBeeLib {
  * @{
  */
 /**
- * RadioStatus 
+ * RadioStatus
  */
 enum RadioStatus {
     Success         = 0,    /**< Success */
     Failure         = -1,   /**< Failure */
-    OpNotSupported  = -2,   /**< Option Not Supported */
-};
-/**
- * @}
- */
-
-/**
- * @defgroup RadioType
- * @{
- */
-/**
- * RadioType 
- */
-enum RadioType {
-    Unknown     = 0,        /**< Not detected yet */
-    XB24_A_S1   = 0x17,     /**< S1 */
-    XBP24_A_S1  = 0x18,     /**< S1 */
-    XB24_B_S2   = 0x19,     /**< S2 */
-    XBP24_B_S2  = 0x1A,     /**< S2 */
-    XBP09_D     = 0x1B,     /**< S4 */
-    XBP09_XC    = 0x1C,     /**< S3 */
-    XBP08_D     = 0x1D,     /**< 868MHz S5 */
-    XBP24_B_S2B = 0x1E,     /**< S2B */
-    XB24_WF     = 0x1F,     /**< S6 */
-    XBP24_C_SMT = 0x21,     /**< XBee PRO SMT S2C */
-    XB24_C_SMT  = 0x22,     /**< XBee SMT S2C */
-    XBP09_XC_B  = 0x23,     /**< S3B */
-    XBP09_B     = 0x23,     /**< S3B */
-    XB8         = 0x24,     /**< S8 */
-    XB2B_WF_TH  = 0x27,     /**< S6B TH */
-    XB2B_WF_SMT = 0x28,     /**< S6B SMT */
-    XBP24_C_TH  = 0x2D,     /**< S2C TH */
-    XB24_C_TH   = 0x2E,     /**< S2C TH */
 };
 /**
  * @}
@@ -95,7 +62,7 @@ enum RadioType {
  * @{
  */
 /**
- * TxStatus 
+ * TxStatus
  */
 enum TxStatus {
     TxStatusSuccess            = 0,     /**< Success */
@@ -124,46 +91,11 @@ enum TxStatus {
  */
 
 /**
- * @defgroup PmMode
- * @{
- */
-/**
- * PmMode 
- */
-enum PmMode {
-    SleepDisabled       = 0,  /**< SleepDisabled */
-    PinSleep            = 1,  /**< PinSleep */
-    PinDoze             = 2,  /**< PinDoze */
-    CyclicSeleep        = 4,  /**< CyclicSeleep */
-    CyclicSeleepPinW    = 5,  /**< CyclicSeleepPinW */
-};
-/**
- * @}
- */
- 
- /**
- * @defgroup NetworkRole
- * @{
- */
-/**
- * NetworkRole 
- */
-enum NetworkRole {
-    UnknownRole,            /**< Unknown Role */
-    Coordinator,            /**< Coordinator */
-    Router,                 /**< Router */
-    EndDevice,              /**< EndDevice */
-};
-/**
- * @}
- */
-
-/**
  * @defgroup RadioLocation
  * @{
  */
 /**
- * RadioLocation 
+ * RadioLocation
  */
 enum RadioLocation {
     RadioLocal     = 0,     /**< Local Radio */
@@ -172,7 +104,7 @@ enum RadioLocation {
 /**
  * @}
  */
- 
+
 /** Parent Class for XBee modules, not to be directly used */
 class XBee
 {
@@ -187,16 +119,14 @@ class XBee
     RadioStatus wait_for_module_to_reset(volatile uint16_t *rst_cnt_p, uint16_t init_rst_cnt);
 
     protected:
-    /** timer used by local and remote objects */
-    static Timer        _timer;
-
     /** buffer to store the received frames */
-    static FrameBuffer _framebuf;
+    static FrameBuffer _framebuf_app;
+    static FrameBuffer _framebuf_syncr;
 
     public:
- 
+
         /**
-         * RadioMode 
+         * RadioMode
          */
         enum RadioMode {
             ModeUnknown     = 0,  /**< Unknown */
@@ -216,11 +146,11 @@ class XBee
          * to this baud rate (ATBD parameter). By default it is configured to 9600 bps
          * */
         XBee(PinName tx, PinName rx, PinName reset = NC, PinName rts = NC, PinName cts = NC, int baud = 9600);
- 
+
         XBee(const XBee& other); /* Intentionally not implemented */
         /** Class destructor */
         virtual ~XBee();
-        
+
         /** init-  initializes object
          * This function must be called just after creating the object so it initializes internal data.
          * @returns
@@ -234,12 +164,6 @@ class XBee
          *  @returns the 64bit address of the local device
          */
         uint64_t get_addr64() const;
-
-        /** get_addr16 - returns the 16bit address of the local device
-         *
-         *  @returns the 16-bit address of the local device.
-         */
-        uint16_t get_addr16() const;
 
         /** get_network_address - gets the 16bit network address of the device
          *
@@ -266,8 +190,8 @@ class XBee
          *     Failure otherwise
          */
         RadioStatus software_reset();
- 
-        /** device_reset - performs a hardware reset if there is a GPIO connected to the 
+
+        /** device_reset - performs a hardware reset if there is a GPIO connected to the
          * reset line of the device. Otherwise, performs a firmware reset.
          *
          *  @returns
@@ -279,12 +203,6 @@ class XBee
 #endif
         RadioStatus device_reset();
 
-        /** get_radio_type - returns the type of radio, in most cases the hardware version
-         *
-         *  @returns the radio type
-         */
-        RadioType get_radio_type() const;
-
         /** set_tx_options - sets the transmit options byte, used with the transmit frames.
          *                   Valid flags are:
          *                       - DISABLE_RETRIES_AND_ROUTE_REPAIR
@@ -295,24 +213,11 @@ class XBee
          */
         void set_tx_options(uint8_t options);
 
-        /** set_broadcast_radius - sets the max number of hops for a broadcast msg.
-         *                         When set to 0 uses the maximum possible.
-         *
-         *  @param bc_radius variable with the broadcast radious
-         */
-        void set_broadcast_radius(uint8_t bc_radius);
-
         /** get_tx_options - returns the tx options byte configured in the library.
          *
          *  @returns the tx options byte configured in the library.
          */
         uint8_t get_tx_options() const;
-        
-        /** get_bc_radius - returns the broadcast radius configured in the library.
-         *
-         *  @returns the broadcast radius configured in the library.
-         */
-        uint8_t get_bc_radius() const;
 
         /************************ Configuration member methods *************************/
         /** write_config - write settings to non volatile memory
@@ -322,7 +227,7 @@ class XBee
          *     Failure otherwise
          */
         RadioStatus write_config();
-       
+
         /** config_io_sample_destination - configures to which node a remote module will send its IO Samples to.
          * @Note: this will modify 'remote' DH and DL parameters, if the remote node is configured in transparent mode this could lead to unwanted behavior.
          * Consult the module's reference manual for more information.
@@ -362,13 +267,13 @@ class XBee
          *     Failure otherwise
          */
         RadioStatus get_power_level(uint8_t * const level);
-        
+
         /** get_hw_version - gets the hardware version of the radio
          *
          *  @returns the hardware version of the radio
          */
         uint16_t get_hw_version() const;
-        
+
         /** get_fw_version - gets the firmware version of the radio
          *
          *  @returns the firmware version of the radio
@@ -393,15 +298,39 @@ class XBee
          */
         RadioStatus get_node_identifier(char * const node_id);
 
+        /** enable_network_encryption - Enable network encryption.
+         *
+         *  @param enable whether to enable this feature or not
+         *  @returns
+         *     Success if the operation was successful,
+         *     Failure otherwise
+         */
+        RadioStatus enable_network_encryption(bool enable);
+
+        /** set_network_encryption_key - Sets the 128-bit AES key used for encryption and decryption. Setting it to 0 will cause the coordinator to transmit the network key in the clear to joining devices, and will cause joining devices to acquire the network key in the clear when joining.
+         *  It is not recommended to set the key programmatically, because it could be read through the raw serial port bits.
+         *  @param key pointer to the 128-bit AES key
+         *  @param length size of the buffer pointed by 'key'
+         *  @returns
+         *     Success if the operation was successful,
+         *     Failure otherwise
+         */
+        RadioStatus set_network_encryption_key(const uint8_t * const key, const uint16_t length);
+
         /** start_node_discovery - starts a node discovery operation. The responses
          * have to be processes on the callback function that have to be registered
-         * for that purpose
+         * for that purpose.
          *
          *  @returns
          *     Success if the operation was successful,
          *     Failure otherwise
          */
         RadioStatus start_node_discovery();
+
+        /** is_node_discovery_in_progress - checks if node discovery is in progress.
+         *  @returns true if node discovery is in progress, false otherwise
+         */
+        bool is_node_discovery_in_progress();
 
 #define XBEEZB_ND_OPTION_APPEND_DD          (1 << 0)
 #define XBEEZB_ND_OPTION_SELF_RESPONSE      (1 << 1)
@@ -437,7 +366,7 @@ class XBee
          *  @param timeout_ms new timeout in ms
          */
         void set_timeout(uint16_t timeout_ms);
-        
+
         /** get_timeout - gets the timeout in ms configured in the library. This value
          *                is used in sync commands
          *
@@ -445,7 +374,7 @@ class XBee
          */
         uint16_t get_timeout() const;
 
-        /* ... */     
+        /* ... */
 
         /*********************** send_data member methods ************************/
         /** send_data - sends data to a remote device
@@ -459,7 +388,7 @@ class XBee
          *     the error code otherwise
          */
         virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr = true) = 0;
-        
+
         /** send_data_broadcast - sends data to all devices in the network, using the broadcast address.
          *
          *  @param data pointer to the data that will be sent
@@ -470,7 +399,7 @@ class XBee
          *     the error code otherwise
          */
         TxStatus send_data_broadcast(const uint8_t *const data, uint16_t len, bool syncr = true);
-        
+
         /** set_param - sets a parameter in the local radio by sending an AT command and waiting for the response.
          *
          *  @param param parameter to be set.
@@ -478,29 +407,29 @@ class XBee
          *  @returns the command response status.
          */
         AtCmdFrame::AtCmdResp set_param(const char * const param, uint32_t data);
-        
+
         /** set_param - sets a parameter in the local radio by sending an AT command and waiting for the response.
          *
          *  @param param parameter to be set.
-         *  @param data the parameter value byte array (len bytes) to be set. 
-         *  @param len number of bytes of the parameter value. 
+         *  @param data the parameter value byte array (len bytes) to be set.
+         *  @param len number of bytes of the parameter value.
          *  @returns the command response status.
          */
         AtCmdFrame::AtCmdResp set_param(const char * const param, const uint8_t * data = NULL, uint16_t len = 0);
-        
+
         /** get_param - gets a parameter from the local radio by sending an AT command and waiting for the response.
          *
          *  @param param parameter to be get.
-         *  @param data pointer where the param value (4 bytes) will be stored. 
+         *  @param data pointer where the param value (4 bytes) will be stored.
          *  @returns the command response status.
          */
         AtCmdFrame::AtCmdResp get_param(const char * const param, uint32_t * const data);
-      
+
         /** get_param - gets a parameter from the local radio by sending an AT command and waiting for the response.
          *
          *  @param param parameter to be get.
-         *  @param data pointer where the param value (n bytes) will be stored. 
-         *  @param len pointer where the number of bytes of the param value will be stored. 
+         *  @param data pointer where the param value (n bytes) will be stored.
+         *  @param len pointer where the number of bytes of the param value will be stored.
          *  @returns the command response status.
          */
         AtCmdFrame::AtCmdResp get_param(const char * const param, uint8_t * const data, uint16_t * const len);
@@ -513,110 +442,37 @@ class XBee
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp set_param(const RemoteXBee& remote, const char * const param, uint32_t data) = 0;
-        
+
         /** set_param - sets a parameter in a remote radio by sending an AT command and waiting for the response.
          *
          *  @param remote remote device
          *  @param param parameter to be set.
-         *  @param data the parameter value byte array (len bytes) to be set. 
+         *  @param data the parameter value byte array (len bytes) to be set.
          *  @param len number of bytes of the parameter value.
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp set_param(const RemoteXBee& remote, const char * const param, const uint8_t * data = NULL, uint16_t len = 0) = 0;
-        
+
         /** get_param - gets a parameter from a remote radio by sending an AT command and waiting for the response.
          *
          *  @param remote remote device
          *  @param param parameter to be get.
-         *  @param data pointer where the param value (4 bytes) will be stored. 
+         *  @param data pointer where the param value (4 bytes) will be stored.
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp get_param(const RemoteXBee& remote, const char * const param, uint32_t * const data) = 0;
-      
+
         /** get_param - gets a parameter from a remote radio by sending an AT command and waiting for the response.
          *
          *  @param remote remote device
          *  @param param parameter to be get.
-         *  @param data pointer where the param value (n bytes) will be stored. 
-         *  @param len pointer where the number of bytes of the param value will be stored. 
+         *  @param data pointer where the param value (n bytes) will be stored.
+         *  @param len pointer where the number of bytes of the param value will be stored.
          *  @returns the command response status.
          */
         virtual AtCmdFrame::AtCmdResp get_param(const RemoteXBee& remote, const char * const param, uint8_t * const data, uint16_t * const len) = 0;
 
-#if defined(ENABLE_PM_SUPPORT)
-        /** set_pm_control - sets the operational mode of the Power Management on
-         *                   the radio and registers the GPIOs used to handle the
-         *                   Power Management
-         *
-         *  @param mode operational mode of the power management
-         *  @param on_sleep pin used to detect the on/sleep status of the module
-         *  @param sleep_rq pin used to request the module to go to sleep (when pin
-         *         sleep mode is used
-         *  @returns the result of the configuration operation
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-         RadioStatus set_pm_control(PmMode mode, PinName on_sleep = NC, PinName sleep_rq = NC);
-
-        /** get_pm_mode - gets the power management mode programmed in the radio.
-         *
-         *  @param mode pointer where the read mode will be stored.
-         *  @returns the result of the configuration operation
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-         RadioStatus get_pm_mode(PmMode *mode);
-
-        /** config_pm_timing - configures the power management timing parameters.
-         *
-         *  @param before_sleep_ms number of miliseconds of inactivity before the radio will
-         *                         automatically go to sleep again (when using cyclic sleep).
-         *  @param total_sleep_period_ms time interval in ms the radio will be sleeping. Once
-         *                               this time passes, the radio will wakeup, will check for
-         *                               packets and will wait before_sleep_ms of inactivity
-         *                               before entering again in sleep mode.
-         *  @returns the result of the configuration operation
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-         RadioStatus config_pm_timing(uint32_t before_sleep_ms, uint32_t total_sleep_period_ms);
-
-        /** enter_sleep_mode - sets the radio into low power mode. If the pm working mode
-         *                     is pin-sleep, then it will use the GPIO, otherwise, it will
-         *                     use the serial interface.
-         *
-         *  @note the method does not wait until the radio enters in sleep mode, it returns
-         *        without making any verification.
-         *  @returns the result of the operation
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-         RadioStatus enter_sleep_mode();
-
-        /** exit_sleep_mode - for the pm mode called pin-sleep, sets the radio into active power
-         *                    using the corresponding GPIO.
-         *
-         */
-         void exit_sleep_mode();
-
-        /** is_sleeping - checks if the radio is sleeping or if its active.
-         *
-         *  @returns true if the radio is sleeping, false otherwisw
-         */
-         bool is_sleeping();
-         
-        /** register_wakeup_cb - registers the callback function that will be called
-         *                       when the radio wakes up from sleep mode.
-         *
-         *  @param f function pointer with the callback function
-         */
-        void register_wakeup_cb(void (*f)(void));
-
-        /** unregister_wakeup_cb - removes the wakeup callback */
-        void unregister_wakeup_cb();
-#endif  /* defined(ENABLE_PM_SUPPORT) */
-
-        /** process_rx_frames - method that process the frames queued in the reception
+        /** process_rx_frames - method that processes the frames queued in the reception
          *                      buffer. Calls the process_frame_data method of the frame
          *                      handlers registered
          *
@@ -648,20 +504,20 @@ class XBee
             ZNet,
 #endif
         };
-        /** send_byte_escaping_if - sends a byte, through the serial interface, to 
+        /** send_byte_escaping_if - sends a byte, through the serial interface, to
          * the radio, escaping the byte if the working mode of the radio is API2.
          *
          *  @param line PWM line being set
          *  @param data the byte that will be send to radio
          */
         void send_byte_escaping_if(uint8_t data);
-    
+
         /** uart_read_cb - serial interface callback, called when data is received on
          * the serial port. The function parses the incoming data and, when a good
          * frame is detected, saves it in the frame list
          */
         void uart_read_cb();
-    
+
         /** get_this_api_frame - searches in the FrameBuffer for an incoming frame
          *                       with frameid equal to id and frame type equal to type
          *                       or type2. If after timeout the frame hast not been found,
@@ -670,14 +526,14 @@ class XBee
          *  @param id id of the frame we are looking for.
          *  @param type tye type we expect the frame to be.
          *  @param type2 alternative valid type, if provided.
-         *  @returns a pointer to the frame found in the FrameBuffer or a null pointer if 
+         *  @returns a pointer to the frame found in the FrameBuffer or a null pointer if
          *           the frame has not been found and the timeout expired.
          */
-        ApiFrame * get_this_api_frame(uint8_t id, ApiFrame::ApiFrameType type, 
+        ApiFrame * get_this_api_frame(uint8_t id, ApiFrame::ApiFrameType type,
                     ApiFrame::ApiFrameType type2 = ApiFrame::Invalid);
 
         /** send_api_frame - method to send, over the serial port, an API frame
-         * 
+         *
          * @param frame pointer to the frame that will be sent.
          */
 #if defined(UNIT_TEST)
@@ -687,15 +543,15 @@ class XBee
 
         /** update_radio_status - method called when a modem status frame is received
          *  to update the internal status variables of the library.
-         *  @note This is not a pure virtual function because it can be called while 
+         *  @note This is not a pure virtual function because it can be called while
          *        the object is being constructed and we need the implementation of the
-         *        base class.         
+         *        base class.
          *
          *  @param status byte with the status received in the modem status frame
          */
         virtual void radio_status_update(AtCmdFrame::ModemStatus modem_status);
-        
-        /** Method used internaly by the derived classes to transmit data to 
+
+        /** Method used internaly by the derived classes to transmit data to
          * remote nodes, waiting for the answer from the device
          *
          *  @param frame frame that will be sent to the radio (have to be a
@@ -709,25 +565,20 @@ class XBee
         /** send_at_cmd - sends an AT command to the radio and waits for the response.
          *
          *  @param frame api frame with the command and command params.
-         *  @param buf pointer where the param response (n bytes) will be stored. 
-         *  @param len pointer where the number of bytes of the param response will be stored. 
-         *  @param radio_location radio location, either RadioLocal or RadioRemote. 
-         *  @param reverse reverse the byte ordering of the response saved in buf. 
+         *  @param buf pointer where the param response (n bytes) will be stored.
+         *  @param len pointer where the number of bytes of the param response will be stored.
+         *  @param radio_location radio location, either RadioLocal or RadioRemote.
+         *  @param reverse reverse the byte ordering of the response saved in buf.
          *  @returns the command response status.
          */
         AtCmdFrame::AtCmdResp send_at_cmd(AtCmdFrame *frame,
                     uint8_t *const buf, uint16_t *const len, RadioLocation radio_location = RadioLocal, bool reverse = true);
-                    
+
         /* send_at_cmd - methods used internally by other methods */
         AtCmdFrame::AtCmdResp send_at_cmd(AtCmdFrame *frame);
         AtCmdFrame::AtCmdResp send_at_cmd(AtCmdFrame *frame, uint8_t *data);
         AtCmdFrame::AtCmdResp send_at_cmd(AtCmdFrame *frame, uint16_t *data);
         AtCmdFrame::AtCmdResp send_at_cmd(AtCmdFrame *frame, uint32_t *data);
-        
-#if defined(ENABLE_PM_SUPPORT)
-        /** Sets the radio into low power mode. This method is used by enter_sleep_mode() */
-        RadioStatus sleep_now();
-#endif  /* defined(ENABLE_PM_SUPPORT) */
 
         /** register_frame_handler - registers an object to handle incoming frames from
          *                           the radio.
@@ -777,15 +628,20 @@ class XBee
          */
         bool check_radio_flow_control();
 
+        /** get_AI - reads the AI parameter.
+         *
+         *  @returns
+         *      -1 if an error occurred when reading AI.
+         *      0-0xFF the AI value.
+         */
+        int get_AI(void);
+
         /** serial hardware flow control selected by the user (RTSCTS, RTS,CTS) */
         SerialBase::Flow _serial_flow_type;
 
         /** Operating mode of the module (API1, API2,...) */
         RadioMode   _mode;
 
-        /** Type of radio, mainly the hardware version, but may differ in some cases */
-        RadioType   _type;
-        
         /** Hardware version value of the radio */
         uint16_t    _hw_version;
 
@@ -793,28 +649,22 @@ class XBee
         uint16_t    _fw_version;
 
         /** Timeout in ms for sync operations (when we wait for a response) */
-        uint16_t    _timeout_ms;     
+        uint16_t    _timeout_ms;
 
         /** Device 64 bit address (SH, SL) */
         uint64_t      _dev_addr64;
 
-        /** Device 16 bit address (MY) */        
-        uint16_t    _dev_addr16;
-       
         /** Serial Interface, use RawSerial as we dont use the streams */
         RawSerial   *_uart;
 
         /** IO connected to the radio reset line */
-        DigitalOut  *_reset;         
-        
+        DigitalOut  *_reset;
+
         /** Transmit options byte */
         uint8_t     _tx_options;
 
-        /** Broadcast radius, number of hops a broadcast transmission can occur.
-         *  When set to 0 it will use the maximum */
-        uint8_t     _bc_radius;
-        /** Array of frame handler pointers. We use an array instead of a vector or other 
-         *  data structure to save memory and avoid dynamic memory allocation, to avoid 
+        /** Array of frame handler pointers. We use an array instead of a vector or other
+         *  data structure to save memory and avoid dynamic memory allocation, to avoid
          *  memory fragmentation */
         FrameHandler *_fhandlers[MAX_FRAME_HANDLERS];
 
@@ -823,8 +673,6 @@ class XBee
 
         /** Watchdog reset counter, automatically updated by the library */
         volatile uint16_t    _wd_reset_cnt;
-
-        uint16_t    _reset_timeout;
 
         /** Frame handler used for the Modem Status packets. Automatically registered when a callback
          *  function is registered */
@@ -836,14 +684,14 @@ class XBee
         /** Library is initializing */
         bool _initializing;
 
-#if defined(ENABLE_PM_SUPPORT)
-        /* Power Management mode used by the radio */
-        PmMode      _pm_mode;
-        /** IO connected to the radio on_sleep line */
-        InterruptIn *_on_sleep;         
-        /** IO connected to the radio sleep_req line */
-        DigitalOut  *_sleep_req;
-#endif
+        /** Timer used for node discovery */
+        Timer _nd_timer;
+
+        /** node discovery timeout */
+        int _nd_timeout;
+
+        /** If a _get_remote_node_by_id() is in progress, this keeps the expected frame id */
+        uint8_t _node_by_ni_frame_id;
 };
 
 }   /* namespace XBeeLib */

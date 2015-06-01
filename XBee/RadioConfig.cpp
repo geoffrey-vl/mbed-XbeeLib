@@ -26,17 +26,6 @@ RadioStatus XBee::write_config(void)
     return Success;
 }
 
-RadioStatus XBee::sleep_now(void)
-{
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = set_param("SI");
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        return Failure;
-    }
-    return Success;
-}
-
 RadioStatus XBee::set_power_level(uint8_t  level)
 {
     AtCmdFrame::AtCmdResp cmdresp;
@@ -138,6 +127,25 @@ RadioStatus XBee::get_node_identifier(char * const node_id)
     return Success;
 }
 
+RadioStatus XBee::enable_network_encryption(bool enable)
+{
+    AtCmdFrame::AtCmdResp cmdresp;
+
+    cmdresp = set_param("EE", enable);
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
+}
+
+RadioStatus XBee::set_network_encryption_key(const uint8_t * const key, const uint16_t length)
+{
+    if (key == NULL || length == 0 || length > 16) {
+        return Failure;
+    }
+    AtCmdFrame::AtCmdResp cmdresp;
+
+    cmdresp = set_param("KY", key, length);
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
+}
+
 uint16_t XBee::get_hw_version() const
 {
     return _hw_version;
@@ -158,22 +166,41 @@ uint8_t XBee::get_tx_options() const
     return _tx_options;
 }
 
-void XBee::set_broadcast_radius(uint8_t bc_radius)
-{
-    _bc_radius = bc_radius;
-}
-
-uint8_t XBee::get_bc_radius() const
-{
-    return _bc_radius;
-}
-
 RadioStatus XBee::start_node_discovery()
 {
+    AtCmdFrame::AtCmdResp cmdresp;
+    uint32_t nd_timeout_cfg;
+
+    cmdresp = get_param("NT", &nd_timeout_cfg);
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
+        return Failure;
+    }
+
+    const unsigned int guard_time_ms = 1000;
+    const uint32_t nd_timeout_cfg_ms = nd_timeout_cfg * 100;
+    _nd_timeout = nd_timeout_cfg_ms + guard_time_ms;
+
+    _nd_timer.start();
+
     AtCmdFrame cmd_frame = AtCmdFrame("ND");
     send_api_frame(&cmd_frame);
 
     return Success;
+}
+
+bool XBee::is_node_discovery_in_progress()
+{
+    const int nd_timer = _nd_timer.read_ms();
+
+    if (nd_timer == 0)
+        return false;
+
+    if (nd_timer > _nd_timeout) {
+        _nd_timer.stop();
+        _nd_timer.reset();
+    }
+
+    return true;
 }
 
 void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const addr64, uint16_t * const addr16)
@@ -198,40 +225,48 @@ void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const a
         _timeout_ms = (uint16_t)nd_timeout_100msec * 100 + 1000;
     }
 
-    const AtCmdFrame::AtCmdResp cmdresp = set_param("ND", (const uint8_t *)node_id, strlen(node_id));
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        _timeout_ms = old_timeout;
+    const int nd_timeout = _timeout_ms;
+    Timer nd_timer = Timer();
+
+    nd_timer.start();
+
+    AtCmdFrame atnd_frame = AtCmdFrame("ND", (const uint8_t *)node_id, strlen(node_id));
+    const uint8_t frame_id = atnd_frame.get_frame_id();
+    _node_by_ni_frame_id = frame_id;
+    send_api_frame(&atnd_frame);
+
+    ApiFrame * const resp_frame = get_this_api_frame(frame_id, ApiFrame::AtCmdResp);
+    _timeout_ms = old_timeout;
+
+    _node_by_ni_frame_id = 0;
+
+    if (resp_frame == NULL) {
+        digi_log(LogLevelWarning, "_get_remote_node_by_id: timeout when waiting for ATND response");
         return;
     }
 
-    const int nd_start_time = _timer.read_ms();
-    const int nd_end_time = nd_start_time + _timeout_ms;
-
-    AtCmdFrame atnd_frame = AtCmdFrame("ND", (const uint8_t *)node_id, strlen(node_id));
-    send_api_frame(&atnd_frame);
-
-    ApiFrame * const resp_frame = get_this_api_frame(atnd_frame.get_frame_id(), ApiFrame::AtCmdResp);
-    _timeout_ms = old_timeout;
-
-    while (_timer.read_ms() < nd_end_time) {
-        wait_ms(10);
-    }
-
-    if (resp_frame == NULL) {
-        digi_log(LogLevelWarning, "XBeeZB::get_remote_node_by_id timeout when waiting for ATND response");
+    if (resp_frame->get_data_len() < sizeof (uint16_t) + sizeof (uint64_t)) {
+        /* In 802.15.4 this might be the OK or Timeout message with no information */
+        digi_log(LogLevelInfo, "_get_remote_node_by_id: node not found\r\n", __FUNCTION__, node_id);
+        _framebuf_syncr.free_frame(resp_frame);
         return;
     }
 
     const AtCmdFrame::AtCmdResp resp = (AtCmdFrame::AtCmdResp)resp_frame->get_data_at(ATCMD_RESP_STATUS_OFFSET);
     if (resp != AtCmdFrame::AtCmdRespOk) {
-        digi_log(LogLevelWarning, "send_at_cmd bad response: 0x%x\r\n", resp);
-        _framebuf.free_frame(resp_frame);
+        digi_log(LogLevelWarning, "_get_remote_node_by_id: send_at_cmd bad response: 0x%x\r\n", resp);
+        _framebuf_syncr.free_frame(resp_frame);
         return;
     }
 
     rmemcpy((uint8_t *)addr16, resp_frame->get_data() + ATCMD_RESP_DATA_OFFSET, sizeof *addr16);
     rmemcpy((uint8_t *)addr64, resp_frame->get_data() + ATCMD_RESP_DATA_OFFSET + sizeof *addr16, sizeof *addr64);
-    _framebuf.free_frame(resp_frame);
+    _framebuf_syncr.free_frame(resp_frame);
+
+    while (nd_timer.read_ms() < nd_timeout) {
+        wait_ms(10);
+    }
+
     return;
 }
 

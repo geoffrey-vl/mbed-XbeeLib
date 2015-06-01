@@ -9,10 +9,10 @@
  * Digi International Inc. 11001 Bren Road East, Minnetonka, MN 55343
  * =======================================================================
  */
- 
+
 #if !defined(__FRAME_BUFFER_H_)
 #define __FRAME_BUFFER_H_
- 
+
 #include "config.h"
 #include "mbed.h"
 #include "Frames/ApiFrame.h"
@@ -28,54 +28,47 @@ typedef struct element {
 
 /**
  *  @class FrameBuffer
- *  @brief storage class for incoming frames 
- */ 
+ *  @brief storage class for incoming frames
+ */
 class FrameBuffer
 {
     public:
         /** Constructor */
-        FrameBuffer();
-        
+        FrameBuffer(uint8_t size, uint16_t max_payload_len);
+
         FrameBuffer(const FrameBuffer& other); /* Intentionally not implemented */
-        /** Destructor */ 
+        /** Destructor */
         ~FrameBuffer();
-        
-        /** get_next_free_frame returns the next free frame 
+
+        /** get_next_free_frame returns the next free frame
          *
          * @returns a pointer to the next free frame */
         ApiFrame *get_next_free_frame();
 
-        /** complete_frame sets the status of the frame to complete once the 
+        /** complete_frame sets the status of the frame to complete once the
          *                      data has been set in the buffer.
          *
          * @param pointer to the buffer we want to set as complete
          * @returns true on success, false otherwise
          */
         bool complete_frame(ApiFrame *frame);
-        
+
         /** free_frame makes the frame available to be reused in future
          *
          * @param frame to release */
         bool free_frame(ApiFrame *frame);
 
-        /** get_next_complete_frame_app returns the pointer to the next complete frame using _tail_app 
+        /** get_next_complete_frame returns the pointer to the next complete frame
          *
          * @returns the pointer to the selected buffer
          */
-        ApiFrame *get_next_complete_frame_app();
-
-        /** get_next_complete_frame_syncr returns the pointer to the next complete frame using _tail_syncr
-         *
-         * @returns the pointer to the selected buffer
-         */
-        ApiFrame *get_next_complete_frame_syncr();
+        ApiFrame *get_next_complete_frame();
 
         /** get_dropped_frames_count returns the number of dropped frames since latest call to this method
          *
          * @returns the number of dropped frames since latest call to this method
          */
         uint32_t get_dropped_frames_count();
-
 
 protected:
 
@@ -87,26 +80,19 @@ protected:
         };
 
         /** buffer array */
-        buf_element_t   _frm_buf[FRAME_BUFFER_SIZE];
+        buf_element_t   * _frm_buf;
+
+        uint8_t          _size;
+        
 
         /** head frame index */
         uint8_t         _head;
 
         /** tail frame index for application */
-        uint8_t         _tail_app;
-
-        /** tail frame index for syncronous operations */
-        uint8_t         _tail_syncr;
+        uint8_t         _tail;
 
         /** dropped frames */
         uint32_t        _dropped_frames;
-
-        /** get_next_complete_frame returns the pointer to the next complete frame
-         *
-         * @param tail tail index to use (either _tail_app or _tail_syncr)
-         * @returns the pointer to the selected buffer
-         */
-        ApiFrame *get_next_complete_frame(uint8_t* tail);
 };
- 
+
 #endif /* __FRAME_BUFFER_H_ */

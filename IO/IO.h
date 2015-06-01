@@ -22,7 +22,7 @@ namespace XBeeLib {
  * @{
  */
 /**
- * IoMode 
+ * IoMode
  */
 enum IoMode {
     Disabled         = 0,  /**< Disabled */
@@ -36,13 +36,13 @@ enum IoMode {
 /**
  * @}
  */
- 
+
 /**
  * @defgroup DioVal
  * @{
  */
 /**
- * DioVal 
+ * DioVal
  */
 enum DioVal {
     Low     = 0,      /**< Low Value */
@@ -54,5 +54,5 @@ enum DioVal {
 
 }   /* namespace XBeeLib */
 
-        
+
 #endif /* __IO_H_ */

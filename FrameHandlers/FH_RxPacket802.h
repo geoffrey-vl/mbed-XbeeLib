@@ -31,14 +31,14 @@ namespace XBeeLib {
 typedef void (*receive_802_cb_t)(const RemoteXBee802& remote, bool broadcast, const uint8_t *const data, uint16_t len);
 /**
  * @}
- */ 
+ */
 
 class FH_RxPacket64b802 : public FrameHandler
 {
     private:
         /** Callback function, invoked if registered */
         receive_802_cb_t receive_cb;
-       
+
     public:
         /** Class constructor */
         FH_RxPacket64b802();
@@ -46,13 +46,10 @@ class FH_RxPacket64b802 : public FrameHandler
         /** Class destructor */
         virtual ~FH_RxPacket64b802();
 
-        /**  */
         virtual void process_frame_data(const ApiFrame* const frame);
 
-        /**  */
         virtual void register_receive_cb(receive_802_cb_t function);
 
-        /**  */
         virtual void unregister_receive_cb();
 };
 
@@ -69,13 +66,10 @@ class FH_RxPacket16b802 : public FrameHandler
         /** Class destructor */
         virtual ~FH_RxPacket16b802();
 
-        /**  */
         virtual void process_frame_data(const ApiFrame *const frame);
 
-        /**  */
         virtual void register_receive_cb(receive_802_cb_t function);
 
-        /**  */
         virtual void unregister_receive_cb();
 };
 

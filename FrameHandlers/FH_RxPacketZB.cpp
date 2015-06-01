@@ -24,16 +24,14 @@ FH_RxPacketZB::~FH_RxPacketZB()
 {
 }
 
-/**  */
 void FH_RxPacketZB::register_receive_cb(receive_zb_cb_t function)
 {
-    receive_cb = function;    
+    receive_cb = function;
 }
 
-/**  */
 void FH_RxPacketZB::unregister_receive_cb(void)
 {
-    receive_cb = NULL;    
+    receive_cb = NULL;
 }
 
 /* ZB RX packet offsets */
@@ -45,13 +43,13 @@ void FH_RxPacketZB::unregister_receive_cb(void)
 
 #define BROADCAST_PACKET            0x02
 
-/**  */
 void FH_RxPacketZB::process_frame_data(const ApiFrame *const frame)
 {
-    /* The caller checks that the type matches, so no need to check it here again */        
+    /* The caller checks that the type matches, so no need to check it here again */
 
-    if (receive_cb == NULL)
+    if (receive_cb == NULL) {
         return;
+    }
 
     /* We got a rx packet, decode it... */
     const uint8_t *datap = frame->get_data();

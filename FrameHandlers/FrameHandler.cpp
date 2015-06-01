@@ -19,8 +19,8 @@ FrameHandler::FrameHandler(ApiFrame::ApiFrameType t) : _type(t)
 FrameHandler::~FrameHandler()
 {
 }
-    
+
 ApiFrame::ApiFrameType FrameHandler::get_type() const
 {
-    return _type;    
+    return _type;
 }

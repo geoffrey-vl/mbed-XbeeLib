@@ -39,9 +39,10 @@ ApiFrame::ApiFrame(uint16_t len)
 uint8_t ApiFrame::get_next_frame_id(void)
 {
     last_frame_id++;
-    if (last_frame_id == 0)
+    if (last_frame_id == 0) {
         last_frame_id++;
-    
+    }
+
     return last_frame_id;
 }
 
@@ -55,8 +56,9 @@ void ApiFrame::set_api_frame(ApiFrameType type, const uint8_t *data, uint16_t le
 {
     this->_type = type;
     this->_data_frame_len = len;
-    if (this->_data)
+    if (this->_data) {
         delete _data;
+    }
     this->_data = new uint8_t[len];
     this->_alloc_data = true;
     assert(this->_data != NULL);
@@ -74,7 +76,7 @@ void ApiFrame::dump(void) const
 {
 #if defined(ENABLE_LOGGING)
     digi_log(LogLevelFrameData, "API frame: type %02x, len %d\r\n", this->_type, this->_data_frame_len);
-    for (int i = 0; i < this->_data_frame_len; i++)    
+    for (int i = 0; i < this->_data_frame_len; i++)
         digi_log(LogLevelFrameData, "%02x ", this->_data[i]);
     digi_log(LogLevelFrameData, "\r\n");
 #endif
@@ -82,11 +84,12 @@ void ApiFrame::dump(void) const
 
 void ApiFrame::dump_if(ApiFrameType type)
 {
-    if (_type != type)
+    if (_type != type) {
         return;
-    dump();        
+    }
+    dump();
 }
-       
+
 ApiFrame::ApiFrameType ApiFrame::get_frame_type() const
 {
     return _type;
@@ -100,27 +103,27 @@ void ApiFrame::set_frame_type(ApiFrameType type)
 uint16_t ApiFrame::get_data_len() const
 {
     return _data_frame_len;
-} 
+}
 
-void ApiFrame::set_data_len(uint16_t len) 
+void ApiFrame::set_data_len(uint16_t len)
 {
     _data_frame_len = len;
-} 
+}
 
 const uint8_t *ApiFrame::get_data() const
 {
     return _data;
-} 
+}
 
 uint8_t ApiFrame::get_data_at(uint16_t index) const
 {
     return *(_data + index);
-} 
+}
 
-void ApiFrame::set_data(uint8_t d, uint16_t index) 
+void ApiFrame::set_data(uint8_t d, uint16_t index)
 {
     *(_data + index) = d;
-} 
+}
 
 /* Returns the frame_id of this frame */
 uint8_t ApiFrame::get_frame_id() const

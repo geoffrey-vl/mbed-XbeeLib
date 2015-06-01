@@ -39,12 +39,12 @@
 #define MAX_NI_PARAM_LEN                20
 
 /** Class for the AT command api frames. Derived from ApiFrame */
-class AtCmdFrame : public ApiFrame 
+class AtCmdFrame : public ApiFrame
 {
     public:
 
         /**
-         * AtCmdResp 
+         * AtCmdResp
          */
         enum AtCmdResp {
             AtCmdRespOk             = 0,     /**< Ok */
@@ -58,7 +58,7 @@ class AtCmdFrame : public ApiFrame
         };
 
         /**
-         * ModemStatus 
+         * ModemStatus
          */
         enum ModemStatus {
             HwReset         = 0,     /**< Hardware reset */
@@ -82,82 +82,82 @@ class AtCmdFrame : public ApiFrame
          * @param param_len length of the command param
          */
         AtCmdFrame(const char * const cmd, const uint32_t cmd_param);
-        
-        /** Class constructor 
+
+        /** Class constructor
          *
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_param pointer to command parameter
          * @param param_len length of the command param
          */
         AtCmdFrame(const char * const cmd, const uint8_t * cmd_param = NULL, uint16_t param_len = 0);
 
-        /** Class constructor 
+        /** Class constructor
          *
          * @param remote 64 bit address of the remote device where we want to run the command
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_param command parameter
          */
         AtCmdFrame(uint64_t remote, const char * const cmd, uint32_t cmd_param);
-        
-        /** Class constructor 
+
+        /** Class constructor
          *
          * @param remote 64 bit address of the remote device where we want to run the command
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_param pointer to command parameter
          * @param param_len length of the command param
          */
         AtCmdFrame(uint64_t remote, const char * const cmd, const uint8_t * cmd_param = NULL, uint16_t param_len = 0);
 
-        /** Class constructor 
+        /** Class constructor
          *
          * @param remote 16 bit address of the remote device where we want to run the command
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_param command parameter
          */
         AtCmdFrame(uint16_t remote, const char * const cmd, uint32_t cmd_param);
-        
-        /** Class constructor 
+
+        /** Class constructor
          *
          * @param remote 16 bit address of the remote device where we want to run the command
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_param pointer to command parameter
          * @param param_len length of the command param
          */
         AtCmdFrame(uint16_t remote, const char * const cmd, const uint8_t * cmd_param = NULL, uint16_t param_len = 0);
 
-        /** Class constructor 
+        /** Class constructor
          *
          * @param remote 64 bit address of the remote device where we want to run the command
          * @param remote 16 bit address of the remote device where we want to run the command
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_param command parameter
          */
         AtCmdFrame(uint64_t remote64, uint16_t remote16, const char * const cmd, uint32_t cmd_param);
-        
-        /** Class constructor 
+
+        /** Class constructor
          *
          * @param remote 64 bit address of the remote device where we want to run the command
          * @param remote 16 bit address of the remote device where we want to run the command
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_param pointer to command parameter
          * @param param_len length of the command param
          */
         AtCmdFrame(uint64_t remote64, uint16_t remote16, const char * const cmd, const uint8_t * cmd_param = NULL, uint16_t param_len = 0);
 
     protected:
-        /** build_at_cmd_frame method used by the constructors to create the at command frame 
+        /** build_at_cmd_frame method used by the constructors to create the at command frame
          *
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_params pointer to command parameter
          * @param param_len length of the command param
          */
         void build_at_cmd_frame(const char *cmd, const uint8_t *cmd_params, uint8_t payload_len, bool reverse = true);
 
-        /** build_at_cmd_remote_frame method used by the constructors to create the at command frame 
+        /** build_at_cmd_remote_frame method used by the constructors to create the at command frame
          *
          * @param remote64 64 bit address of the remote device where we want to run the command
          * @param remote16 16 bit address of the remote device where we want to run the command
-         * @param cmd at command of the frame 
+         * @param cmd at command of the frame
          * @param cmd_params pointer to command parameter
          * @param param_len length of the command param
          */

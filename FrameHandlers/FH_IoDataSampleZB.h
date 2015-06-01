@@ -41,10 +41,11 @@ class FH_IoDataSampeZB : public FrameHandler
 
         /** Class destructor */
         virtual ~FH_IoDataSampeZB();
-        /**  */
+
         virtual void process_frame_data(const ApiFrame *const frame);
 
         void register_io_data_cb(io_data_cb_zb_t function);
+
         void unregister_io_data_cb();
 
     private:

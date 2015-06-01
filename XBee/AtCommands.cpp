@@ -9,7 +9,7 @@
  * Digi International Inc. 11001 Bren Road East, Minnetonka, MN 55343
  * =======================================================================
  */
- 
+
 #include "XBeeLib.h"
 
 #define GET_CMD_RESP(fr, radio_location)    (radio_location == RadioRemote ? fr->get_data_at(REM_AT_CMD_RESP_STATUS_OFFSET) \
@@ -17,11 +17,11 @@
 
 #define GET_DATA_LEN(fr, radio_location)    (radio_location == RadioRemote ? (fr->get_data_len() - REM_AT_CMD_RESP_OVERHEAD) \
                                                                    : (fr->get_data_len() - ATCMD_RESP_OVERHEAD))
-                                       
+
 #define GET_DATA_OFF(radio_location)        (radio_location == RadioRemote ? REM_AT_CMD_RESP_CMD_DATA_OFFSET \
                                                                    : ATCMD_RESP_DATA_OFFSET)
 
-using namespace XBeeLib;                              
+using namespace XBeeLib;
 
 /** Method that sends an AT command to the module and waits for the command response.
  *  @returns the AT command response */
@@ -30,7 +30,7 @@ AtCmdFrame::AtCmdResp XBee::send_at_cmd(AtCmdFrame *frame,
 {
     AtCmdFrame::AtCmdResp resp = AtCmdFrame::AtCmdRespTimeout;
     ApiFrame *resp_frame;
-    ApiFrame::ApiFrameType expected_type = 
+    ApiFrame::ApiFrameType expected_type =
             (frame->get_frame_type() == ApiFrame::AtCmd) ?
             ApiFrame::AtCmdResp : ApiFrame::RemoteCmdResp;
 
@@ -38,9 +38,10 @@ AtCmdFrame::AtCmdResp XBee::send_at_cmd(AtCmdFrame *frame,
 
     /* Wait for the AT command response packet */
     resp_frame = get_this_api_frame(frame->get_frame_id(), expected_type);
-    if (resp_frame == NULL)
+    if (resp_frame == NULL) {
         return resp;
- 
+    }
+
     resp = (AtCmdFrame::AtCmdResp)GET_CMD_RESP(resp_frame, radio_location);
     if (resp == AtCmdFrame::AtCmdRespOk) {
         if (buf != NULL && len != NULL) {
@@ -62,7 +63,7 @@ AtCmdFrame::AtCmdResp XBee::send_at_cmd(AtCmdFrame *frame,
     }
 
     /* Once processed, remove the frame from the buffer */
-    _framebuf.free_frame(resp_frame);
+    _framebuf_syncr.free_frame(resp_frame);
     return resp;
 }
 
@@ -78,8 +79,9 @@ AtCmdFrame::AtCmdResp XBee::send_at_cmd(AtCmdFrame *frame, uint8_t *data)
     uint16_t len = sizeof *data;
     AtCmdFrame::AtCmdResp atCmdResponse = send_at_cmd(frame, data, &len);
 
-    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len != sizeof *data)
+    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len != sizeof *data) {
         atCmdResponse = AtCmdFrame::AtCmdRespLenMismatch;
+    }
 
     return atCmdResponse;
 }
@@ -89,8 +91,9 @@ AtCmdFrame::AtCmdResp XBee::send_at_cmd(AtCmdFrame *frame, uint16_t *data)
     uint16_t len = sizeof *data;
     AtCmdFrame::AtCmdResp atCmdResponse = send_at_cmd(frame, (uint8_t *)data, &len);
 
-    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len != sizeof *data)
+    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len != sizeof *data) {
         atCmdResponse = AtCmdFrame::AtCmdRespLenMismatch;
+    }
 
     return atCmdResponse;
 }
@@ -100,8 +103,9 @@ AtCmdFrame::AtCmdResp XBee::send_at_cmd(AtCmdFrame *frame, uint32_t *data)
     uint16_t len = sizeof *data;
     AtCmdFrame::AtCmdResp atCmdResponse = send_at_cmd(frame, (uint8_t *)data, &len);
 
-    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len != sizeof *data)
+    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len != sizeof *data) {
         atCmdResponse = AtCmdFrame::AtCmdRespLenMismatch;
+    }
 
     return atCmdResponse;
 }
@@ -114,8 +118,9 @@ AtCmdFrame::AtCmdResp XBee::get_param(const char * const param, uint32_t * const
     *data = 0; /* Set to zero, send_at_cmd() only writes the necessary bytes, so if only 1 is written all the remaining 3 should be 0. */
     AtCmdFrame::AtCmdResp atCmdResponse = send_at_cmd(&cmd_frame, (uint8_t *)data, &len);
 
-    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len > sizeof *data)
+    if (atCmdResponse == AtCmdFrame::AtCmdRespOk && len > sizeof *data) {
         atCmdResponse = AtCmdFrame::AtCmdRespLenMismatch;
+    }
 
     return atCmdResponse;
 }

@@ -15,7 +15,7 @@
 
 #include "ApiFrame.h"
 
-class TxFrameZB : public ApiFrame 
+class TxFrameZB : public ApiFrame
 {
     public:
         /** Class constructor */
@@ -24,7 +24,7 @@ class TxFrameZB : public ApiFrame
 
         /** Class constructor */
         TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t source_ep, uint8_t dest_ep,
-                  uint16_t cluster_id, uint16_t profile_id, uint8_t broadcast_rad, 
+                  uint16_t cluster_id, uint16_t profile_id, uint8_t broadcast_rad,
                   uint8_t tx_opt, const uint8_t *const data, uint16_t len);
 };
 

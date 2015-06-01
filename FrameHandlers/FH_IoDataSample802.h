@@ -43,7 +43,6 @@ class FH_IoDataSampe64b802 : public FrameHandler
         /** Class destructor */
         virtual ~FH_IoDataSampe64b802();
 
-        /**  */
         virtual void process_frame_data(const ApiFrame *const frame);
 
         void register_io_data_cb(io_data_cb_802_t function);
@@ -64,11 +63,12 @@ class FH_IoDataSampe16b802 : public FrameHandler
         /** Class destructor */
         virtual ~FH_IoDataSampe16b802();
 
-        /**  */
         virtual void process_frame_data(const ApiFrame *const frame);
 
         void register_io_data_cb(io_data_cb_802_t function);
+
         void unregister_io_data_cb();
+
     private:
         /** Callback function, invoked if registered */
         io_data_cb_802_t io_data_cb;
