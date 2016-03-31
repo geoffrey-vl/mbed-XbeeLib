@@ -676,7 +676,8 @@ XBee::RadioProtocol XBee::get_radio_protocol(void) const
         XB900HP_NZ = 0x2C,
         XBP24C_TH_DIP = 0x2D,
         XB24C_TH_DIP = 0x2E,
-        XLR_BASEBOARD = 0x2F
+        XLR_BASEBOARD = 0x2F,
+        XBP24C_S2C_SMT = 0x30
 #endif
     };
     const bool fw_4_bytes_len = _fw_version > 0x0FFF && _fw_version < 0xFFFF;
@@ -729,6 +730,9 @@ XBee::RadioProtocol XBee::get_radio_protocol(void) const
         return XBeeWiFi;
 #endif
     } else if (hw_version_msb == XBP24C || hw_version_msb == XB24C) {
+        if (fw_4_bytes_len && fw_nibble_3 == 2) {
+            return Raw_802_15_4;
+        }
 #ifdef EXTRA_XBEE_PROTOCOLS
         if (fw_4_bytes_len && fw_nibble_3 == 5) {
             return SmartEnergy;
@@ -755,6 +759,14 @@ XBee::RadioProtocol XBee::get_radio_protocol(void) const
         return None;
     } else if (hw_version_msb == XB900HP_NZ) {
         return DigiPoint;
+    } else if (hw_version_msb == XBP24C_TH_DIP || hw_version_msb == XB24C_TH_DIP || hw_version_msb == XBP24C_S2C_SMT) {
+        if (fw_4_bytes_len && fw_nibble_3 == 5) {
+            return SmartEnergy;
+        }
+        if (fw_4_bytes_len && fw_nibble_3 == 2) {
+            return Raw_802_15_4;
+        }
+        return ZigBee;
     }
 #else
     }

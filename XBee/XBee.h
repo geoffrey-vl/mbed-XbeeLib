@@ -492,6 +492,8 @@ class XBee
 
     protected:
 
+#define EXTRA_XBEE_PROTOCOLS
+
         enum RadioProtocol {
             None,
             ZigBee,
