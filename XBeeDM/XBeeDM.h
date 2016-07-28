@@ -374,6 +374,17 @@ class XBeeDM : public XBee
          */
         RadioStatus enable_dio_change_detection(const RemoteXBee& remote, IoLine line, bool enable);
 
+        /** config_poll_destination - configures to which node poll messages will be sent once module awakes if configured as
+         *                            an Indirect Msg Poller (CE==0x4).
+         * Consult the module's reference manual for more information.
+         *
+         *  @param destination remote device where the poll messages will be sent
+         *  @returns the result of the data transfer
+         *     Success if the operation was successful,
+         *     Failure otherwise
+         */
+        RadioStatus config_poll_destination(const RemoteXBee& destination);
+
     protected:
 
         /** Frame handler used for the node discovery. Registered when a callback function

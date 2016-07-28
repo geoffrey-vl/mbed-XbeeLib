@@ -548,3 +548,34 @@ RadioStatus XBeeDM::enable_dio_change_detection(const RemoteXBee& remote, IoLine
 
     return Success;
 }
+
+RadioStatus XBeeDM::config_poll_destination(const RemoteXBee& destination)
+{
+    uint32_t dh;
+    uint32_t dl;
+
+    if (destination.is_valid_addr64b()) {
+        const uint64_t dest64 = destination.get_addr64();
+        dh = (uint32_t)((dest64 >> 32) & 0xFFFFFFFF);
+        dl = (uint32_t)((dest64 & 0xFFFFFFFF));
+    } else {
+        digi_log(LogLevelError, "config_poll_destination: Invalid destination");
+        return Failure;
+    }
+
+    AtCmdFrame::AtCmdResp cmdresp;
+
+    cmdresp = set_param("DH", dh);
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
+        digi_log(LogLevelError, "config_poll_destination: error %d:\r\n", cmdresp);
+        return Failure;
+    }
+
+    cmdresp = set_param("DL", dl);
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
+        digi_log(LogLevelError, "config_poll_destination: error %d:\r\n", cmdresp);
+        return Failure;
+    }
+
+    return Success;
+}
