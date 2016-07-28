@@ -77,3 +77,15 @@ RemoteXBeeZB::RemoteXBeeZB(uint64_t remote64, uint16_t remote16) : RemoteXBee(re
 RemoteXBeeZB::~RemoteXBeeZB()
 {
 }
+
+RemoteXBeeDM::RemoteXBeeDM() : RemoteXBee()
+{
+}
+
+RemoteXBeeDM::RemoteXBeeDM(uint64_t remote64) : RemoteXBee(remote64)
+{
+}
+
+RemoteXBeeDM::~RemoteXBeeDM()
+{
+}

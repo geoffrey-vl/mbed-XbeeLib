@@ -154,6 +154,29 @@ class RemoteXBeeZB : public RemoteXBee
         }
 };
 
+/** Class for DigiMesh Remote XBee modules */
+class RemoteXBeeDM : public RemoteXBee
+{
+    public:
+
+         /** Default Class constructor for a DigiMesh remote device (connected wirelessly). No address set.
+         */
+        RemoteXBeeDM();
+
+       /** Class constructor for a DigiMesh remote device (connected wirelessly) using 64bit addressing
+         * @param remote64 the 64-bit address (ATSH and ATSL parameters) of the remote XBee module
+         */
+        RemoteXBeeDM(uint64_t remote64);
+
+        /** Class destructor */
+        ~RemoteXBeeDM();
+
+        inline bool is_valid(void)
+        {
+            return is_valid_addr64b();
+        }
+};
+
 }   /* namespace XBeeLib */
 
 #endif /* defined(__XBEE_REMOTE_H_) */

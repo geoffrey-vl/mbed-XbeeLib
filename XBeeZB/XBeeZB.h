@@ -170,6 +170,15 @@ class XBeeZB : public XBee
          */
         RadioStatus get_channel_mask(uint16_t * const chmask);
 
+        /** get_network_address - gets the 16bit network address of the device
+         *
+         *  @param addr pointer where the device 16bit network address will be stored
+         *  @returns
+         *     Success if the operation was successful,
+         *     Failure otherwise
+         */
+        RadioStatus get_network_address(uint16_t * const addr);
+
         /** check_for_coordinator_at_start - (Routers only) If enabled, a router will verify the coordinator is on its operating channel when joining or coming up from a power cycle.
          * If a coordinator is not detected, the router will leave its current channel and attempt to join a new PAN. If JV=0, the router will continue operating on its current channel even if a coordinator is not detected.
          *
@@ -445,6 +454,19 @@ class XBeeZB : public XBee
 
         /* Allow using XBee::send_data() methods from this class */
         using XBee::send_data;
+
+        /** get_node_discovery_timeout - gets the node discovery timeout
+          *
+          *  @param timeout_ms pointer where the node discovery timeout value will be stored
+          *  @param wait_for_complete_timeout pointer where the function will store if the operator
+          *                                   has to wait for the complete nd timeout after issuing 
+          *                                   a directed nd request
+          *  @returns
+          *     Success if the operation was successful,
+          *     Failure otherwise
+          */
+        virtual RadioStatus get_node_discovery_timeout(uint16_t * const timeout_ms);
+        virtual RadioStatus get_node_discovery_timeout(uint16_t * const timeout_ms, bool * const wait_for_complete_timeout);
 };
 
 }   /* namespace XBeeLib */

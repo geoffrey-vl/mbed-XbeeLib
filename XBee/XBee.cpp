@@ -295,38 +295,40 @@ void XBee::uart_read_cb(void)
                         const ApiFrame::ApiFrameType frame_type = (ApiFrame::ApiFrameType)data;
                         switch (frame_type)
                         {
-                            case ApiFrame::AtCmdResp:       /**< AtCmdResp */
-                            case ApiFrame::RemoteCmdResp:   /**< RemoteCmdResp */
-                            case ApiFrame::TxStatusZB:      /**< TxStatusZB: Only for ZigBee modules */
-                            case ApiFrame::TxStatus:        /**< TxStatus */
+                            case ApiFrame::AtCmdResp:
+                            case ApiFrame::RemoteCmdResp:
+                            case ApiFrame::TxStatusZBDM:
+                            case ApiFrame::TxStatus:
                                 framebuf = &_framebuf_syncr;
                                 break;
 
-                            case ApiFrame::RxPacket64Bit:   /**< RxPacket64Bit: Only for 802.15.4 modules */
-                            case ApiFrame::RxPacket16Bit:   /**< RxPacket16Bit: Only for 802.15.4 modules */
-                            case ApiFrame::Io64Bit:         /**< Io64Bit: Only for 802.15.4 modules */
-                            case ApiFrame::Io16Bit:         /**< Io16Bit */
-                            case ApiFrame::AtModemStatus:   /**< AtModemStatus */
-                            case ApiFrame::RxPacketAO0:     /**< RxPacketAO0: Only for ZigBee modules */
-                            case ApiFrame::IoSampleRxZB:    /**< IoSampleRxZB: Only for ZigBee modules */
+                            case ApiFrame::RxPacket64Bit:
+                            case ApiFrame::RxPacket16Bit:
+                            case ApiFrame::Io64Bit:
+                            case ApiFrame::Io16Bit:
+                            case ApiFrame::AtModemStatus:
+                            case ApiFrame::RxPacketAO0:
+                            case ApiFrame::IoSampleRxZBDM:
                                 framebuf = &_framebuf_app;
                                 break;
 
-                            case ApiFrame::RxPacketAO1:     /**< RxPacketAO1: Only for ZigBee modules */
-                            case ApiFrame::SensorRxIndAO0:  /**< SensorRxIndAO0: Only for ZigBee modules */
-                            case ApiFrame::NodeIdentIndAO0: /**< NodeIdentIndAO0: Only for ZigBee modules */
-                            case ApiFrame::OtaFwUpStatus:   /**< OtaFwUpStatus */
-                            case ApiFrame::RouteRecInd:     /**< RouteRecInd */
-                            case ApiFrame::Many2OneRRInd:   /**< Many2OneRRInd */
-                            case ApiFrame::TxReq64Bit:      /**< TxReq64Bit: Only for 802.15.4 modules */
-                            case ApiFrame::TxReq16Bit:      /**< TxReq16Bit: Only for 802.15.4 modules */
-                            case ApiFrame::AtCmd:           /**< AtCmd */
-                            case ApiFrame::AtCmdQueuePV:    /**< AtCmdQueuePV */
-                            case ApiFrame::TxReqZB:         /**< TxReqZB: Only for ZigBee modules */
-                            case ApiFrame::ExpAddrCmd:      /**< ExpAddrCmd: Only for ZigBee modules */
-                            case ApiFrame::RemoteCmdReq:    /**< RemoteCmdReq */
-                            case ApiFrame::CreateSrcRoute:  /**< CreateSrcRoute */
-                            case ApiFrame::Invalid:         /**< Invalid */
+                            case ApiFrame::RxPacketAO1:
+                            case ApiFrame::SensorRxIndAO0:
+                            case ApiFrame::NodeIdentIndAO0:
+                            case ApiFrame::OtaFwUpStatus:
+                            case ApiFrame::RouteRecInd:
+                            case ApiFrame::Many2OneRRInd:
+                            case ApiFrame::TxReq64Bit:
+                            case ApiFrame::TxReq16Bit:
+                            case ApiFrame::AtCmd:
+                            case ApiFrame::AtCmdQueuePV:
+                            case ApiFrame::TxReqZBDM:
+                            case ApiFrame::ExpAddrCmd:
+                            case ApiFrame::RemoteCmdReq:
+                            case ApiFrame::CreateSrcRoute:
+                            case ApiFrame::Invalid:
+                            case ApiFrame::RouteInfo:
+                            case ApiFrame::AggregateAddr:
                                 framebuf = NULL;
                                 break;
                         }
@@ -365,13 +367,13 @@ void XBee::uart_read_cb(void)
                     const ApiFrame::ApiFrameType frame_type = (ApiFrame::ApiFrameType)frame_cached[0];
                     switch (frame_type)
                     {
-                        case ApiFrame::RemoteCmdResp:   /**< RemoteCmdResp */
-                        case ApiFrame::TxStatusZB:      /**< TxStatusZB: Only for ZigBee modules */
-                        case ApiFrame::TxStatus:        /**< TxStatus */
+                        case ApiFrame::RemoteCmdResp:
+                        case ApiFrame::TxStatusZBDM:
+                        case ApiFrame::TxStatus:
                             framebuf = &_framebuf_syncr;
                             break;
 
-                        case ApiFrame::AtCmdResp:       /**< AtCmdResp */
+                        case ApiFrame::AtCmdResp:
                             if ((frame_cached[1] != _node_by_ni_frame_id ) && (frame_cached[2] == 'N') && (data == 'D'))
                             {
                                 framebuf = &_framebuf_app;
@@ -380,31 +382,33 @@ void XBee::uart_read_cb(void)
                             }
                             break;
 
-                        case ApiFrame::RxPacket64Bit:   /**< RxPacket64Bit: Only for 802.15.4 modules */
-                        case ApiFrame::RxPacket16Bit:   /**< RxPacket16Bit: Only for 802.15.4 modules */
-                        case ApiFrame::Io64Bit:         /**< Io64Bit: Only for 802.15.4 modules */
-                        case ApiFrame::Io16Bit:         /**< Io16Bit */
-                        case ApiFrame::AtModemStatus:   /**< AtModemStatus */
-                        case ApiFrame::RxPacketAO0:     /**< RxPacketAO0: Only for ZigBee modules */
-                        case ApiFrame::IoSampleRxZB:    /**< IoSampleRxZB: Only for ZigBee modules */
+                        case ApiFrame::RxPacket64Bit:
+                        case ApiFrame::RxPacket16Bit:
+                        case ApiFrame::Io64Bit:
+                        case ApiFrame::Io16Bit:
+                        case ApiFrame::AtModemStatus:
+                        case ApiFrame::RxPacketAO0:
+                        case ApiFrame::IoSampleRxZBDM:
                             framebuf = &_framebuf_app;
                             break;
 
-                        case ApiFrame::RxPacketAO1:     /**< RxPacketAO1: Only for ZigBee modules */
-                        case ApiFrame::SensorRxIndAO0:  /**< SensorRxIndAO0: Only for ZigBee modules */
-                        case ApiFrame::NodeIdentIndAO0: /**< NodeIdentIndAO0: Only for ZigBee modules */
-                        case ApiFrame::OtaFwUpStatus:   /**< OtaFwUpStatus */
-                        case ApiFrame::RouteRecInd:     /**< RouteRecInd */
-                        case ApiFrame::Many2OneRRInd:   /**< Many2OneRRInd */
-                        case ApiFrame::TxReq64Bit:      /**< TxReq64Bit: Only for 802.15.4 modules */
-                        case ApiFrame::TxReq16Bit:      /**< TxReq16Bit: Only for 802.15.4 modules */
-                        case ApiFrame::AtCmd:           /**< AtCmd */
-                        case ApiFrame::AtCmdQueuePV:    /**< AtCmdQueuePV */
-                        case ApiFrame::TxReqZB:         /**< TxReqZB: Only for ZigBee modules */
-                        case ApiFrame::ExpAddrCmd:      /**< ExpAddrCmd: Only for ZigBee modules */
-                        case ApiFrame::RemoteCmdReq:    /**< RemoteCmdReq */
-                        case ApiFrame::CreateSrcRoute:  /**< CreateSrcRoute */
-                        case ApiFrame::Invalid:         /**< Invalid */
+                        case ApiFrame::RxPacketAO1:
+                        case ApiFrame::SensorRxIndAO0:
+                        case ApiFrame::NodeIdentIndAO0:
+                        case ApiFrame::OtaFwUpStatus:
+                        case ApiFrame::RouteRecInd:
+                        case ApiFrame::Many2OneRRInd:
+                        case ApiFrame::TxReq64Bit:
+                        case ApiFrame::TxReq16Bit:
+                        case ApiFrame::AtCmd:
+                        case ApiFrame::AtCmdQueuePV:
+                        case ApiFrame::TxReqZBDM:
+                        case ApiFrame::ExpAddrCmd:
+                        case ApiFrame::RemoteCmdReq:
+                        case ApiFrame::CreateSrcRoute:
+                        case ApiFrame::Invalid:
+                        case ApiFrame::RouteInfo:
+                        case ApiFrame::AggregateAddr:
                             framebuf = NULL;
                             break;
                     }
@@ -760,6 +764,9 @@ XBee::RadioProtocol XBee::get_radio_protocol(void) const
     } else if (hw_version_msb == XB900HP_NZ) {
         return DigiPoint;
     } else if (hw_version_msb == XBP24C_TH_DIP || hw_version_msb == XB24C_TH_DIP || hw_version_msb == XBP24C_S2C_SMT) {
+        if (fw_4_bytes_len && fw_nibble_3 == 9) {
+            return DigiMesh;
+        }
         if (fw_4_bytes_len && fw_nibble_3 == 5) {
             return SmartEnergy;
         }
@@ -787,12 +794,12 @@ TxStatus XBee::send_data(ApiFrame *frame)
 
     /* Wait for the transmit status response packet */
     resp_frame = get_this_api_frame(frame->get_frame_id(),
-                    ApiFrame::TxStatusZB, ApiFrame::TxStatus);
+                    ApiFrame::TxStatusZBDM, ApiFrame::TxStatus);
     if (resp_frame == NULL) {
         return resp;
     }
 
-    uint8_t index = resp_frame->get_frame_type() == ApiFrame::TxStatusZB ?
+    uint8_t index = resp_frame->get_frame_type() == ApiFrame::TxStatusZBDM ?
             TX_STATUS_OFFSET_ZB : TX_STATUS_OFFSET_802;
 
     resp = (TxStatus)resp_frame->get_data_at(index);

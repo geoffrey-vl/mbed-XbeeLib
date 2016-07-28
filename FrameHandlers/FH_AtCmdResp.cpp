@@ -159,3 +159,50 @@ void FH_NodeDiscovery802::process_frame_data(const ApiFrame *const frame)
 
     node_discovery_cb(remote, nodeid);
 }
+
+/** Class constructor */
+FH_NodeDiscoveryDM::FH_NodeDiscoveryDM() :
+    FH_AtCmdResp(ApiFrame::AtCmdResp), node_discovery_cb(NULL)
+{
+}
+
+/** Class destructor */
+FH_NodeDiscoveryDM::~FH_NodeDiscoveryDM()
+{
+}
+
+void FH_NodeDiscoveryDM::register_node_discovery_cb(node_discovery_dm_cb_t function)
+{
+    node_discovery_cb = function;
+}
+
+void FH_NodeDiscoveryDM::unregister_node_discovery_cb()
+{
+    node_discovery_cb = NULL;
+}
+
+
+void FH_NodeDiscoveryDM::process_frame_data(const ApiFrame *const frame)
+{
+    /* The caller checks that the type matches, so no need to check it here again */
+
+    if (node_discovery_cb == NULL) {
+        return;
+    }
+
+    if (frame->get_data_at(ATCMD_RESP_CMD_LOW_OFFSET) != 'N' ||
+        frame->get_data_at(ATCMD_RESP_CMD_HIGH_OFFSET) != 'D') {
+        return;
+    }
+
+    if (frame->get_data_at(ATCMD_RESP_STATUS_OFFSET) != AtCmdFrame::AtCmdRespOk) {
+        return;
+    }
+
+    const uint8_t * const data = frame->get_data(); /* The data payload we get here is the full AT command response payload, excluding the frameid. Keep that in mind for the offsets */
+    const uint64_t addr64 = addr64_from_uint8_t(&data[ATCMD_RESP_SH_ADDR_L_OFFSET]);
+    const char * const node_id = (const char *)&data[ATCMD_RESP_NI_OFFSET];
+    RemoteXBeeDM remote = RemoteXBeeDM(addr64);
+
+    node_discovery_cb(remote, node_id);
+}

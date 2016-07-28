@@ -165,15 +165,6 @@ class XBee
          */
         uint64_t get_addr64() const;
 
-        /** get_network_address - gets the 16bit network address of the device
-         *
-         *  @param addr pointer where the device 16bit network address will be stored
-         *  @returns
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-        RadioStatus get_network_address(uint16_t * const addr);
-
         /** hardware_reset - performs a hardware reset. The reset GPIO must have
          * been provided to the constructor
          *
@@ -338,7 +329,7 @@ class XBee
 
         /** config_node_discovery - configures the node discovery operation
          *
-         *  @param timeout_ms max allowed time for devices in the network to answer
+         *  @param backoff_ms max allowed time for devices in the network to answer
          *                    to the Node Discovery request
          *  @param  options node discovery options (flags)
          *              XBEE802_ND_OPTION_SELF_RESPONSE - to allow the module self responding (802.15.4 only)
@@ -348,18 +339,18 @@ class XBee
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-         RadioStatus config_node_discovery(uint16_t timeout_ms, uint8_t options = 0);
+         RadioStatus config_node_discovery(uint16_t backoff_ms, uint8_t options = 0);
 
          /** get_config_node_discovery - reads the configuration of the node discovery
           * settings
           *
-          *  @param timeout_ms pointer where the node discovery time out value will be stored
+          *  @param backoff_ms pointer where the configured node discovery back-off time value will be stored
           *  @param  options pointer whre the node discovery options (flags) will be saved
           *  @returns
           *     Success if the operation was successful,
           *     Failure otherwise
           */
-         RadioStatus get_config_node_discovery(uint16_t * const timeout_ms, uint8_t * const options);
+         RadioStatus get_config_node_discovery(uint16_t * const backoff_ms, uint8_t * const options);
 
         /** set_timeout - sets the timeout in ms, used by sync methods
          *
@@ -637,6 +628,19 @@ class XBee
          *      0-0xFF the AI value.
          */
         int get_AI(void);
+
+        /** get_node_discovery_timeout - gets the node discovery timeout
+          *
+          *  @param timeout_ms pointer where the node discovery timeout value will be stored
+          *  @param wait_for_complete_timeout pointer where the function will store if the operator
+          *                                   has to wait for the complete nd timeout after issuing 
+          *                                   a directed nd request
+          *  @returns
+          *     Success if the operation was successful,
+          *     Failure otherwise
+          */
+        virtual RadioStatus get_node_discovery_timeout(uint16_t * const timeout_ms) = 0;
+        virtual RadioStatus get_node_discovery_timeout(uint16_t * const timeout_ms, bool * const wait_for_complete_timeout) = 0;
 
         /** serial hardware flow control selected by the user (RTSCTS, RTS,CTS) */
         SerialBase::Flow _serial_flow_type;

@@ -15,32 +15,30 @@
 using namespace XBeeLib;
 
 /** Class constructor */
-FH_IoDataSampeZB::FH_IoDataSampeZB() : FrameHandler(ApiFrame::IoSampleRxZBDM),
+FH_IoDataSampeDM::FH_IoDataSampeDM() : FrameHandler(ApiFrame::IoSampleRxZBDM),
     io_data_cb(NULL)
 {
 }
 
 /** Class destructor */
-FH_IoDataSampeZB::~FH_IoDataSampeZB()
+FH_IoDataSampeDM::~FH_IoDataSampeDM()
 {
 }
 
-void FH_IoDataSampeZB::register_io_data_cb(io_data_cb_zb_t function)
+void FH_IoDataSampeDM::register_io_data_cb(io_data_cb_dm_t function)
 {
     io_data_cb = function;
 }
 
-void FH_IoDataSampeZB::unregister_io_data_cb()
+void FH_IoDataSampeDM::unregister_io_data_cb()
 {
     io_data_cb = NULL;
 }
 
-/* ZB RX packet offsets */
-#define ZB_IO_SAMPLE_ADDR16_MSB_OFFSET      8
-#define ZB_IO_SAMPLE_ADDR16_LSB_OFFSET      9
-#define ZB_IO_SAMPLE_DATA_OFFSET            11
+/* DM RX packet offsets */
+#define DM_IO_SAMPLE_DATA_OFFSET            11
 
-void FH_IoDataSampeZB::process_frame_data(const ApiFrame *const frame)
+void FH_IoDataSampeDM::process_frame_data(const ApiFrame *const frame)
 {
     const uint8_t * const datap = frame->get_data();;
 
@@ -51,9 +49,8 @@ void FH_IoDataSampeZB::process_frame_data(const ApiFrame *const frame)
 
     /* We got an IO packet, decode it... */
     const uint64_t sender64 = addr64_from_uint8_t(datap);
-    const uint16_t sender16 = ADDR16(datap[ZB_IO_SAMPLE_ADDR16_MSB_OFFSET], datap[ZB_IO_SAMPLE_ADDR16_LSB_OFFSET]);
-    const RemoteXBeeZB sender = RemoteXBeeZB(sender64, sender16);
-    const IOSampleZB ioSample = IOSampleZB(&datap[ZB_IO_SAMPLE_DATA_OFFSET], frame->get_data_len() - ZB_IO_SAMPLE_DATA_OFFSET);
+    const RemoteXBeeDM sender = RemoteXBeeDM(sender64);
+    const IOSampleDM ioSample = IOSampleDM(&datap[DM_IO_SAMPLE_DATA_OFFSET], frame->get_data_len() - DM_IO_SAMPLE_DATA_OFFSET);
 
     io_data_cb(sender, ioSample);
 }

@@ -30,6 +30,8 @@
 #include "IO/IOSampleZB.h"
 #include "XBee802/XBee802.h"
 #include "IO/IOSample802.h"
+#include "XBeeDM/XBeeDM.h"
+#include "IO/IOSampleDM.h"
 #include "XBee/Addresses.h"
 #include "RemoteXBee/RemoteXBee.h"
 

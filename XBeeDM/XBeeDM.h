@@ -10,58 +10,58 @@
  * =======================================================================
  */
 
-#if !defined(__XBEE_802_H_)
-#define __XBEE_802_H_
+#if !defined(__XBEE_DM_H_)
+#define __XBEE_DM_H_
 
+#include "XBee/XBee.h"
 #include "FrameHandlers/FH_AtCmdResp.h"
-#include "FrameHandlers/FH_RxPacket802.h"
-#include "FrameHandlers/FH_IoDataSample802.h"
+#include "FrameHandlers/FH_RxPacketDM.h"
+#include "FrameHandlers/FH_IoDataSampleDM.h"
 #include "RemoteXBee/RemoteXBee.h"
 
 namespace XBeeLib {
 
 /** Class for XBee ZigBee modules, derived from XBee */
-class XBee802 : public XBee
+class XBeeDM : public XBee
 {
     public:
 
         /**
-         * IoLine for XBee802 Modules
+         * IoLine for XBeeDM Modules
          */
         enum IoLine {
-            DIO0_AD0 = 0, /**< DIO0_AD0 pin */
-            DIO1_AD1 = 1, /**< DIO1_AD1 pin */
-            DIO2_AD2 = 2, /**< DIO2_AD2 pin */
-            DIO3_AD3 = 3, /**< DIO3_AD3 pin */
-            DIO4_AD4 = 4, /**< DIO4_AD4 pin */
-            DIO5_AD5 = 5, /**< DIO5_AD5 pin */
-            DIO6     = 6, /**< DIO6 pin */
-            DIO7     = 7, /**< DIO7 pin */
-            DI8      = 8, /**< DI8 pin */
-            PWM0,         /**< PWM0 pin */
-            PWM1           /**< PWM1 pin */
+            DIO0_AD0   = 0,  /**< DIO0_AD0 pin */
+            DIO1_AD1   = 1,  /**< DIO1_AD1 pin */
+            DIO2_AD2   = 2,  /**< DIO2_AD2 pin */
+            DIO3_AD3   = 3,  /**< DIO3_AD3 pin */
+            DIO4       = 4,  /**< DIO4 pin */
+            DIO5       = 5,  /**< DIO5 pin */
+            DIO6       = 6,  /**< DIO6 pin */
+            DIO7       = 7,  /**< DIO7 pin */
+            DIO8       = 8,  /**< DIO8 pin */
+            DIO9       = 9,  /**< DIO9 pin */
+            DIO10_PWM0 = 10, /**< DIO10_PWM0 pin */
+            DIO11_PWM1 = 11, /**< DIO11_PWM1 pin */
+            DIO12      = 12  /**< DIO12 pin */
         };
 
         enum AssocStatus {
-            ErrorReading        = -1,       /**< Error occurred when reading parameter. */
-            Joined              = 0x00,     /**< Successful Completion - Coordinator successfully started or End Device association complete. */
-            ActiveScanTimeOut   = 0x01,     /**< Active Scan Timeout. */
-            NoPANs              = 0x02,     /**< Active Scan found no PANs. */
-            JoinNotAllowed      = 0x03,     /**< Active Scan found PAN, but the Coordinator's Allow Association bit is not set. */
-            BeaconsFailed       = 0x04,     /**< Active Scan found PAN, but Coordinator and End Device are not configured to support beacons. */
-            BadPAN              = 0x05,     /**< Active Scan found PAN, but Coordinator ID (PAN ID) value does not match the ID of the End Device. */
-            BadChannel          = 0x06,     /**< Active Scan found PAN, but Coordinator CH (Channel) value does not match the CH of the End Device */
-            EnergyScanTimeout   = 0x07,     /**< Energy Scan timed out. */
-            CoordStartFailed    = 0x08,     /**< Coordinator start request failed. */
-            CoordBadParameters  = 0x09,     /**< Coordinator could not start due to Invalid Parameter. */
-            CoordRealignment    = 0x0A,     /**< Coordinator Realignment is in progress. */
-            AssocReqNotSent     = 0x0B,     /**< Association Request not sent. */
-            AssocReqTimeout     = 0x0C,     /**< Association Request timed out - no reply was received. */
-            AssocReqInvalidPara = 0x0D,     /**< Association Request had an Invalid Parameter. */
-            AssocReqChannelFail = 0x0E,     /**< Association Request Channel Access Failure - Request was not transmitted - CCA failure. */
-            RemCoordNoACK       = 0x0F,     /**< Remote Coordinator did not send an ACK after Association Request was sent. */
-            RemCoordLateACK     = 0x10,     /**< Remote Coordinator did not reply to the Association Request, but an ACK was received after sending the request. */
-            Associating         = 0xFF      /**< RF Module is attempting to associate. */
+            ErrorReading    = -1,       /**< Error occurred when reading parameter. */
+            Joined          = 0x00,     /**< Successfully formed or joined a network. (Coordinators form a network, routers and end devices join a network.) */
+            NoPANs          = 0x21,     /**< Scan found no PANs */
+            NoValidPAN      = 0x22,     /**< Scan found no valid PANs based on current SC and ID settings */
+            JoinNotAllowed  = 0x23,     /**< Valid Coordinator or Routers found, but they are not allowing joining (NJ expired). */
+            NoBeacons       = 0x24,     /**< No joinable beacons were found. */
+            Unexpected      = 0x25,     /**< Unexpected state, node should not be attempting to join at this time. */
+            JoinFailed      = 0x27,     /**< Node Joining attempt failed (typically due to incompatible security settings). */
+            CoordStartFail  = 0x2A,     /**< Coordinator start attempt failed */
+            CheckingCoord   = 0x2B,     /**< Checking for an existing coordinator. */
+            LeaveFail       = 0x2C,     /**< Attempt to leave the network failed. */
+            JoinNoResponse  = 0xAB,     /**< Attempted to join a device that did not respond. */
+            SecKeyUnsec     = 0xAC,     /**< Secure join error - network security key received unsecured. */
+            SecKeyNotRec    = 0xAD,     /**< Secure join error - network security key not received. */
+            SecBadKey       = 0xAF,     /**< Secure join error - joining device does not have the right preconfigured link key. */
+            Scanning        = 0xFF      /**< Scanning for a ZigBee network (routers and end devices). */
         };
 
         /** Class constructor
@@ -73,12 +73,12 @@ class XBee802 : public XBee
          * @param baud the baudrate for the UART that will interface the XBee module. Note that the module has to be already configured
          * to this baud rate (ATBD parameter). By default it is configured to 9600 bps
          */
-        XBee802(PinName tx, PinName rx, PinName reset = NC, PinName rts = NC, PinName cts = NC, int baud = 9600);
+        XBeeDM(PinName tx, PinName rx, PinName reset = NC, PinName rts = NC, PinName cts = NC, int baud = 9600);
 
         /** Class destructor */
-        virtual ~XBee802();
+        virtual ~XBeeDM();
 
-        /** init -  initializes object
+        /** init-  initializes object
          * This function must be called just after creating the object so it initializes internal data.
          * @returns
          *         Success if the module has been properly initialized and is ready to process data.
@@ -86,25 +86,7 @@ class XBee802 : public XBee
          */
         RadioStatus init();
 
-        /** set_panid - sets the 16 bit PAN ID.
-         *
-         *  @param panid the PAN ID value that will be set on the radio
-         *  @returns
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-        RadioStatus set_panid(uint16_t panid);
-
-        /** get_panid - gets the configured 16 bit PAN ID
-         *
-         *  @param panid pointer where the read PAN ID value will be stored
-         *  @returns
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-        RadioStatus get_panid(uint16_t * const panid);
-
-        /** set_channel - sets the network channel number
+        /** set_channel - sets the channel number
          *
          *  @param channel the channel in which the radio operates. Range is 0x0B - 0x1A for XBee and 0x0C - 0x17 for XBee-PRO.
          *  The Center Frequency = 2.405 + (CH - 11) * 5 MHz
@@ -114,7 +96,7 @@ class XBee802 : public XBee
          */
         RadioStatus set_channel(uint8_t channel);
 
-        /** get_panid - gets the network channel number
+        /** get_channel - gets the channel number
          *
          *  @param channel pointer where the channel value will be stored.
          *  @returns
@@ -123,40 +105,62 @@ class XBee802 : public XBee
          */
         RadioStatus get_channel(uint8_t * const channel);
 
-        /** get_network_address - gets the 16bit network address of the device
+        /** set_network_id - sets the Network ID.
          *
-         *  @param addr pointer where the device 16bit network address will be stored
+         *  @param network_id the Network ID value that will be set on the radio
          *  @returns
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-        RadioStatus get_network_address(uint16_t * const addr);
+         RadioStatus set_network_id(uint16_t network_id);
 
-        /** set_network_address - sets the 16 bit network address of the device
+        /** get_network_id - gets the Network ID, as it was set by @ref set_network_id().
          *
-         *  @param addr the device 16bit network address (0x0 - 0xFFFF)
+         *  @param network_id pointer where the Network ID will be stored
          *  @returns
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-        RadioStatus set_network_address(uint16_t addr);
+        RadioStatus get_network_id(uint16_t * const network_id);
+
+        /** set_network_security_key - (Coordinator only) Set the 128-bit AES network encryption key. If set to 0 (default), the module will select a random network key.
+         *  It is not recommended to set the key programmatically, because it could be read through the raw serial port bits.
+         *  @param key pointer to the 128-bit AES key
+         *  @param length size of the buffer pointed by 'key'
+         *  @returns
+         *     Success if the operation was successful,
+         *     Failure otherwise
+         */
+        RadioStatus set_network_security_key(const uint8_t * const key, const uint16_t length);
+
+#define XBEE_DM_ENC_OPT_SEND_KEY_ON_JOIN    0x01
+#define XBEE_DM_ENC_OPT_USE_TRUST_CENTER    0x02
+        /** set_encryption_options - Configure options for encryption. Unused option bits should be set to 0. Options include:
+         *  - XBEE_DM_ENC_OPT_SEND_KEY_ON_JOIN - Send the security key unsecured over-the-air during joins
+         *  - XBEE_DM_ENC_OPT_USE_TRUST_CENTER - Use trust center (coordinator only)
+         *  @param options bit mask with the encryption options
+         *  @returns
+         *     Success if the operation was successful,
+         *     Failure otherwise
+         */
+        RadioStatus set_encryption_options(const uint8_t options);
 
         /** register_node_discovery_cb - registers the callback function that will be called
          * when the responses to the node discovery command arrive
          *
          *  @param function function pointer with the callback function
          */
-        void register_node_discovery_cb(node_discovery_802_cb_t function);
+        void register_node_discovery_cb(node_discovery_dm_cb_t function);
 
         /** unregister_node_discovery_cb - removes the node discovery callback */
         void unregister_node_discovery_cb();
 
         /** register_receive_cb - registers the callback function that will be called
-         * when a rx packet is received
+         * when a data packet is received
          *
          *  @param function function pointer with the callback function
          */
-        void register_receive_cb(receive_802_cb_t function);
+        void register_receive_cb(receive_dm_cb_t function);
 
         /** unregister_receive_cb - removes the rx packet callback */
         void unregister_receive_cb();
@@ -166,7 +170,7 @@ class XBee802 : public XBee
          *
          *  @param function function pointer with the callback function
          */
-        void register_io_sample_cb(io_data_cb_802_t function);
+        void register_io_sample_cb(io_data_cb_dm_t function);
 
         /** unregister_io_sample_cb - removes the IO Sample Data reception callback */
         void unregister_io_sample_cb();
@@ -184,6 +188,37 @@ class XBee802 : public XBee
          */
         virtual TxStatus send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr = true);
 
+        /** send_data - sends data to a remote device. This method uses
+         *                   the explicit addressing frame, allowing to use source and
+         *                   destination end points and cluster and profile IDs
+         *
+         *  @param remote remote device
+         *  @param source_ep source end point
+         *  @param dest_ep destination end point
+         *  @param cluster_id cluster ID
+         *  @param profile_id profile ID
+         *  @param data pointer to the data that will be sent
+         *  @param len number of bytes that will be transmitted
+         *  @param syncr if true, method waits for the packet answer with the result of the operation
+         *  @returns the result of the data transfer
+         *     TxStatusSuccess if the operation was successful,
+         *     the error code otherwise
+         */
+        TxStatus send_data(const RemoteXBee& remote, uint8_t source_ep,
+                                uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
+                                const uint8_t *const data, uint16_t len, bool syncr = true);
+
+        /** send_data_to_coordinator - sends data to the ZigBee coordinator
+         *
+         *  @param data pointer to the data that will be sent
+         *  @param len number of bytes that will be transmitted
+         *  @param syncr if true, method waits for the packet answer with the result of the operation
+         *  @returns the result of the data transfer
+         *     TxStatusSuccess if the operation was successful,
+         *     the error code otherwise
+         */
+        TxStatus send_data_to_coordinator(const uint8_t *const data, uint16_t len, bool syncr = true);
+
         /** get_assoc_status - returns current network association status. This wraps AI parameter, for more information refer to moudle's Reference Manual.
          *
          *  @returns an AssocStatus with current network association status.
@@ -193,10 +228,10 @@ class XBee802 : public XBee
         /** get_remote_node_by_id - searches for a device in the network with the specified Node Identifier.
          *
          *  @param node_id node id of the device we are looking for
-         *  @returns a RemoteXBee802 with the 16-bit and 64-bit address of the remote device whose node id matches with the parameter.
-         *  If node is not found, the returned object will have invalid addresses (RemoteXBee802::is_valid() will return false).
+         *  @returns a RemoteXBeeDM with the 16-bit and 64-bit address of the remote device whose node id matches with the parameter.
+         *  If node is not found, the returned object will have invalid addresses (RemoteXBeeDM::is_valid() will return false).
          */
-        RemoteXBee802 get_remote_node_by_id(const char * const node_id);
+        RemoteXBeeDM get_remote_node_by_id(const char * const node_id);
 
         /* Allow using XBee::set_param() methods for local radio from this class */
         using XBee::set_param;
@@ -214,7 +249,7 @@ class XBee802 : public XBee
          *
          *  @param remote remote device
          *  @param param parameter to be set.
-         *  @param the parameter value byte array (len bytes) to be set.
+         *  @param data the parameter value byte array (len bytes) to be set.
          *  @param len number of bytes of the parameter value.
          *  @returns the command response status.
          */
@@ -291,19 +326,19 @@ class XBee802 : public XBee
          *
          *  @param remote remote device
          *  @param line ADC line being read
-         *  @param val pointer where the value read from the ADC will be stored
+         *  @param val pointer where the value read from hte ADC will be stored
          *  @returns
          *     Success if the operation was successful,
          *     Failure otherwise
          */
         RadioStatus get_adc(const RemoteXBee& remote, IoLine line, uint16_t * const val);
 
-        /** get_iosample - retrieves an @ref IOSample802 from a remote node. This object can be used to get the remote node's ADC and DIO values.
+        /** get_iosample - retrieves an @ref IOSampleDM from a remote node. This object can be used to get the remote node's ADC and DIO values.
          *
          *  @param remote remote device
-         *  @returns IOSample802 object with the remote node's DIO and ADC values.
+         *  @returns IOSampleDM object with the remote node's DIO and ADC values.
          */
-        IOSample802 get_iosample(const RemoteXBee& remote);
+        IOSampleDM get_iosample(const RemoteXBee& remote);
 
         /** set_pwm - sets the duty cycle of a PWM line
          *
@@ -328,7 +363,7 @@ class XBee802 : public XBee
         RadioStatus set_pin_pull_up(const RemoteXBee& remote, IoLine line, bool enable);
 
         /** enable_dio_change_detection - enables or disables the notification when a change is detected in a digital input line.
-         * In other words, it will force an IO Sample transmission when the DIO state changes. Only for DIO0 to DIO7.
+         * In other words, it will force an IO Sample transmission when the DIO state changes. Only for DIO0 to DIO11.
          *
          *  @param remote remote device
          *  @param line line being configured for pull-up
@@ -339,42 +374,19 @@ class XBee802 : public XBee
          */
         RadioStatus enable_dio_change_detection(const RemoteXBee& remote, IoLine line, bool enable);
 
-/* TODO: With current firmware ATM0 fails: Returns just OK and sets pwm to 0 */
-#ifdef GET_PWM_AVAILABLE
-        /** get_pwm - gets the duty cycle of a PWM line
-         *
-         *  @param remote remote device
-         *  @param line PWM line being read
-         *  @param duty_cycle pointer where the value of the duty cycle read from
-         *                    the PWM line will be stored
-         *  @returns
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-        RadioStatus get_pwm(const RemoteXBee& remote, IoLine line, float * const duty_cycle);
-#endif
-
     protected:
 
         /** Frame handler used for the node discovery. Registered when a callback function
          * is registered */
-        FH_NodeDiscovery802  *_nd_handler;
+        FH_NodeDiscoveryDM  *_nd_handler;
 
-         /** Frame handler used for the rx 64 bit packets. Automatically registered when a callback
+        /** Frame handler used for the rx packets. Automatically registered when a callback
          *  function is registered */
-        FH_RxPacket64b802  *_rx_64b_handler;
+        FH_RxPacketDM  *_rx_pkt_handler;
 
-         /** Frame handler used for the rx 16 bit packets. Automatically registered when a callback
+        /** Frame handler used for the IO Data Sample packets. Automatically registered when a callback
          *  function is registered */
-        FH_RxPacket16b802  *_rx_16b_handler;
-
-        /** Frame handler used for the 64 bit IO Data Samples packets. Automatically registered when a callback
-        *  function is registered */
-        FH_IoDataSampe64b802  *_io_data_64b_handler;
-
-        /** Frame handler used for the 16 bit IO Data Samples packets. Automatically registered when a callback
-        *  function is registered */
-        FH_IoDataSampe16b802  *_io_data_16b_handler;
+        FH_IoDataSampeDM  *_io_data_handler;
 
         /** Method called directly by the library when a modem status frame is received to
          * update the internal status variables */
@@ -395,11 +407,8 @@ class XBee802 : public XBee
           */
         virtual RadioStatus get_node_discovery_timeout(uint16_t * const timeout_ms);
         virtual RadioStatus get_node_discovery_timeout(uint16_t * const timeout_ms, bool * const wait_for_complete_timeout);
-
-    private:
-
 };
 
 }   /* namespace XBeeLib */
 
-#endif /* __XBEE_802_H_ */
+#endif /* __XBEE_DM_H_ */

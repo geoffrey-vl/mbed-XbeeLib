@@ -58,16 +58,8 @@ RadioStatus XBee802::set_channel(uint8_t  channel)
 {
     AtCmdFrame::AtCmdResp cmdresp;
 
-    if (is_PRO()) {
-        if (channel < 0x0C || channel > 0x17) {
-            return Failure;
-        }
-    } else {
-        if (channel < 0x0B || channel > 0x1A) {
-            return Failure;
-        }
-    }
-
+    /* Pro and Non-Pro modules have different channels available. The at 
+       command will return an error if the selected channel is not available */
     cmdresp = set_param("CH", channel);
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
@@ -118,6 +110,22 @@ RadioStatus XBee802::get_panid(uint16_t * const  panid)
     return Success;
 }
 
+RadioStatus XBee802::get_network_address(uint16_t * const  addr16)
+{
+    if (addr16 == NULL) {
+        return Failure;
+    }
+    AtCmdFrame::AtCmdResp cmdresp;
+
+    uint32_t var32;
+    cmdresp = get_param("MY", &var32);
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
+        return Failure;
+    }
+    *addr16 = var32;
+    return Success;
+}
+
 RadioStatus XBee802::set_network_address(uint16_t  addr16)
 {
     AtCmdFrame::AtCmdResp cmdresp;
@@ -127,6 +135,34 @@ RadioStatus XBee802::set_network_address(uint16_t  addr16)
         return Failure;
     }
     return Success;
+}
+
+RadioStatus XBee802::get_node_discovery_timeout(uint16_t * const timeout_ms)
+{
+    AtCmdFrame::AtCmdResp cmdresp;
+    uint32_t var32;
+
+    cmdresp = get_param("NT", &var32);
+    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
+        return Failure;
+    }
+    *timeout_ms = (uint16_t)var32;
+
+    /* No N? command available for this protocol. Add a fix 1s guard time */
+    *timeout_ms += 1000;
+
+    return Success;
+}
+
+RadioStatus XBee802::get_node_discovery_timeout(uint16_t * const timeout_ms, bool * const wait_for_complete_timeout)
+{
+    const RadioStatus status = get_node_discovery_timeout(timeout_ms);
+
+    /* This protocol requires to wait for the complete timeout before attempting
+       to execute other commands */
+    *wait_for_complete_timeout = true;
+
+    return status;
 }
 
 void XBee802::radio_status_update(AtCmdFrame::ModemStatus modem_status)

@@ -10,24 +10,24 @@
  * =======================================================================
  */
 
-#ifndef _IO_IOSAMPLEZB_H_
-#define _IO_IOSAMPLEZB_H_
+#ifndef _IO_IOSAMPLEDM_H_
+#define _IO_IOSAMPLEDM_H_
 
-#define MAX_IO_SAMPLE_ZB_LEN   (2 + 2 * 5)
+#define MAX_IO_SAMPLE_DM_LEN   (2 + 2 * 5)
 
 namespace XBeeLib {
 
 /** Class to handle the incoming IO Data Samples in ZigBee modules */
-class IOSampleZB {
+class IOSampleDM {
     public:
         /** Class constructor
          *  @param raw_data The IO Sample data, as returned by an "IS" command response or in the IoSampleRxZBDM (0x92) frames
          *  @param size size (in bytes) of raw_data.
          */
-        IOSampleZB(const uint8_t* const raw_data = NULL, size_t size = 0);
+        IOSampleDM(const uint8_t* const raw_data = NULL, size_t size = 0);
 
         /** Class destructor */
-        ~IOSampleZB();
+        ~IOSampleDM();
 
         /** get_dio - read the value of a DIO configured as digital input
          *
@@ -37,7 +37,7 @@ class IOSampleZB {
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-        RadioStatus get_dio(XBeeZB::IoLine line, DioVal* const dio_value) const;
+        RadioStatus get_dio(XBeeDM::IoLine line, DioVal* const dio_value) const;
 
         /** get_adc - read the value of the espcified ADC line
          *
@@ -47,9 +47,9 @@ class IOSampleZB {
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-        RadioStatus get_adc(XBeeZB::IoLine line, uint16_t* const val) const;
+        RadioStatus get_adc(XBeeDM::IoLine line, uint16_t* const val) const;
 
-        /** is_valid - checks if the IOSampleZB object has at least one DIO or ADC sample.
+        /** is_valid - checks if the IOSampleDM object has at least one DIO or ADC sample.
          *  @returns true if valid, false otherwise
          */
         inline bool is_valid()
@@ -60,7 +60,7 @@ class IOSampleZB {
     protected:
         uint16_t _digital_mask;
         uint8_t _analog_mask;
-        uint8_t _sampled_data[MAX_IO_SAMPLE_ZB_LEN];
+        uint8_t _sampled_data[MAX_IO_SAMPLE_DM_LEN];
         uint8_t _sampled_data_size;
 
         inline uint16_t get_digital_channels(void) const;
@@ -68,4 +68,4 @@ class IOSampleZB {
 
 }   /* namespace XBeeLib */
 
-#endif /* _IO_IOSAMPLEZB_H_ */
+#endif /* _IO_IOSAMPLEDM_H_ */

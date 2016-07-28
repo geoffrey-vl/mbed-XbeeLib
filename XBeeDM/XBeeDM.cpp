@@ -10,222 +10,113 @@
  * =======================================================================
  */
 
-#include "XBeeZB.h"
-#include "IO/IOSampleZB.h"
-#include "Frames/ZigbeeFrames.h"
+#include "XBeeDM.h"
+#include "IO/IOSampleDM.h"
+#include "Frames/DigiMeshFrames.h"
 
 using namespace XBeeLib;
 
 #define BROADCAST_RADIUS_USE_NH 0x00
 
 /* Class constructor */
-XBeeZB::XBeeZB(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
+XBeeDM::XBeeDM(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
          XBee(tx, rx, reset, rts, cts, baud), _nd_handler(NULL), _rx_pkt_handler(NULL), _io_data_handler(NULL)
 {
 }
 
-RadioStatus XBeeZB::init()
+RadioStatus XBeeDM::init()
 {
     RadioStatus retval = XBee::init();
-    uint16_t addr16;
-    RadioStatus error = get_network_address(&addr16);
-    if (error == Success) {
-        digi_log(LogLevelInfo, "ADDR16: %04x\r\n", addr16);
-    } else {
-        digi_log(LogLevelInfo, "ADDR16: UNKNOWN\r\n");
-    }
 
     const RadioProtocol radioProtocol = get_radio_protocol();
-    if (radioProtocol != ZigBee) {
-        digi_log(LogLevelError, "Radio protocol does not match, needed a %d got a %d\r\n", ZigBee, radioProtocol);
+    if (radioProtocol != DigiMesh) {
+        digi_log(LogLevelError, "Radio protocol does not match, needed a %d got a %d\r\n", DigiMesh, radioProtocol);
         retval = Failure;
     }
-    assert(radioProtocol == ZigBee);
+    assert(radioProtocol == DigiMesh);
 
     return retval;
 }
 
 /* Class destructor */
-XBeeZB::~XBeeZB()
+XBeeDM::~XBeeDM()
 {
     unregister_node_discovery_cb();
     unregister_receive_cb();
     unregister_io_sample_cb();
 }
 
-RadioStatus XBeeZB::set_channel_mask(uint16_t  chmask)
+RadioStatus XBeeDM::set_channel(uint8_t  channel)
 {
     AtCmdFrame::AtCmdResp cmdresp;
 
-    cmdresp = set_param("SC", chmask);
+    /* Pro and Non-Pro modules have different channels available. The at 
+       command will return an error if the selected channel is not available */
+    cmdresp = set_param("CH", channel);
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
     }
     return Success;
 }
 
-RadioStatus XBeeZB::get_channel_mask(uint16_t * const  chmask)
+RadioStatus XBeeDM::get_channel(uint8_t * const  channel)
 {
-    if (chmask == NULL) {
+    if (channel == NULL) {
         return Failure;
     }
     AtCmdFrame::AtCmdResp cmdresp;
 
     uint32_t var32;
-    cmdresp = get_param("SC", &var32);
+    cmdresp = get_param("CH", &var32);
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
     }
-    *chmask = var32;
+    *channel = var32;
     return Success;
 }
 
-RadioStatus XBeeZB::set_panid(uint64_t  panid)
+RadioStatus XBeeDM::set_network_id(uint16_t network_id)
 {
-    uint8_t panid_u8[8];
     AtCmdFrame::AtCmdResp cmdresp;
 
-    rmemcpy(panid_u8, (const uint8_t *) &panid, sizeof panid_u8);
-
-    cmdresp = set_param("ID", panid_u8, sizeof panid_u8);
+    cmdresp = set_param("ID", network_id);
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
     }
     return Success;
 }
 
-RadioStatus XBeeZB::get_operating_panid(uint64_t * const  opanid)
+RadioStatus XBeeDM::get_network_id(uint16_t * const network_id)
 {
-    if (opanid == NULL) {
-        return Failure;
-    }
-    uint8_t opanid_u8[8];
-    uint16_t len = sizeof opanid_u8;
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = get_param("OP", opanid_u8, &len);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        return Failure;
-    }
-    if (len != sizeof opanid_u8) {
-        digi_log(LogLevelError, "XBeeZB::get_operating_panid: Read %d bytes instead of %d for OP", len, sizeof opanid_u8);
-        return Failure;
-    }
-    rmemcpy((uint8_t *)opanid, opanid_u8, len);
-    return Success;
-}
-
-RadioStatus XBeeZB::get_configured_panid(uint64_t * const  panid)
-{
-    if (panid == NULL) {
-        return Failure;
-    }
-    uint8_t panid_u8[8];
-    uint16_t len = sizeof panid_u8;
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = get_param("ID", panid_u8, &len);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        return Failure;
-    }
-    if (len != sizeof panid_u8) {
-        digi_log(LogLevelError, "XBeeZB::get_configured_panid: Read %d bytes instead of %d for ID", len, sizeof panid_u8);
-        return Failure;
-    }
-    rmemcpy((uint8_t *)panid, panid_u8, len);
-    return Success;
-}
-
-RadioStatus XBeeZB::set_panid(const RemoteXBee& remote, uint64_t  panid)
-{
-    uint8_t panid_u8[8];
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    rmemcpy(panid_u8, (const uint8_t *) &panid, sizeof panid_u8);
-
-    cmdresp = set_param(remote, "ID", panid_u8, sizeof panid_u8);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        return Failure;
-    }
-    return Success;
-}
-
-RadioStatus XBeeZB::get_operating_panid(const RemoteXBee& remote, uint64_t * const  opanid)
-{
-    if (opanid == NULL) {
-        return Failure;
-    }
-    uint8_t opanid_u8[8];
-    uint16_t len = sizeof opanid_u8;
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = get_param(remote, "OP", opanid_u8, &len);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        return Failure;
-    }
-    if (len != sizeof opanid_u8) {
-        digi_log(LogLevelError, "XBeeZB::get_operating_panid: Read %d bytes instead of %d for OP", len, sizeof opanid_u8);
-        return Failure;
-    }
-    rmemcpy((uint8_t *)opanid, opanid_u8, len);
-    return Success;
-}
-
-RadioStatus XBeeZB::get_configured_panid(const RemoteXBee& remote, uint64_t * const  panid)
-{
-    if (panid == NULL) {
-        return Failure;
-    }
-    uint8_t panid_u8[8];
-    uint16_t len = sizeof panid_u8;
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = get_param(remote, "ID", panid_u8, &len);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        return Failure;
-    }
-    if (len != sizeof panid_u8) {
-        digi_log(LogLevelError, "XBeeZB::get_configured_panid: Read %d bytes instead of %d for ID", len, sizeof panid_u8);
-        return Failure;
-    }
-    rmemcpy((uint8_t *)panid, panid_u8, len);
-    return Success;
-}
-
-RadioStatus XBeeZB::get_network_address(uint16_t * const  addr16)
-{
-    if (addr16 == NULL) {
+    if (network_id == NULL) {
         return Failure;
     }
     AtCmdFrame::AtCmdResp cmdresp;
 
     uint32_t var32;
-    cmdresp = get_param("MY", &var32);
+    cmdresp = get_param("ID", &var32);
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
     }
-    *addr16 = var32;
+    *network_id = var32;
     return Success;
 }
 
-RadioStatus XBeeZB::get_node_discovery_timeout(uint16_t * const timeout_ms)
+RadioStatus XBeeDM::get_node_discovery_timeout(uint16_t * const timeout_ms)
 {
     AtCmdFrame::AtCmdResp cmdresp;
     uint32_t var32;
 
-    cmdresp = get_param("NT", &var32);
+    cmdresp = get_param("N?", &var32);
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
     }
     *timeout_ms = (uint16_t)var32;
 
-    /* No N? command available for this protocol. Add a fix 1s guard time */
-    *timeout_ms += 1000;
-
     return Success;
 }
 
-RadioStatus XBeeZB::get_node_discovery_timeout(uint16_t * const timeout_ms, bool * const wait_for_complete_timeout)
+RadioStatus XBeeDM::get_node_discovery_timeout(uint16_t * const timeout_ms, bool * const wait_for_complete_timeout)
 {
     const RadioStatus status = get_node_discovery_timeout(timeout_ms);
 
@@ -234,15 +125,7 @@ RadioStatus XBeeZB::get_node_discovery_timeout(uint16_t * const timeout_ms, bool
     return status;
 }
 
-RadioStatus XBeeZB::check_for_coordinator_at_start(bool enable)
-{
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = set_param("JV", (uint8_t)enable);
-    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
-}
-
-RadioStatus XBeeZB::set_network_security_key(const uint8_t * const key, const uint16_t length)
+RadioStatus XBeeDM::set_network_security_key(const uint8_t * const key, const uint16_t length)
 {
     if (key == NULL || length == 0 || length > 16) {
         return Failure;
@@ -253,7 +136,7 @@ RadioStatus XBeeZB::set_network_security_key(const uint8_t * const key, const ui
     return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
-RadioStatus XBeeZB::set_encryption_options(const uint8_t options)
+RadioStatus XBeeDM::set_encryption_options(const uint8_t options)
 {
     AtCmdFrame::AtCmdResp cmdresp;
 
@@ -261,7 +144,7 @@ RadioStatus XBeeZB::set_encryption_options(const uint8_t options)
     return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
-void XBeeZB::radio_status_update(AtCmdFrame::ModemStatus modem_status)
+void XBeeDM::radio_status_update(AtCmdFrame::ModemStatus modem_status)
 {
     /* Update the radio status variables */
     if (modem_status == AtCmdFrame::HwReset) {
@@ -275,7 +158,7 @@ void XBeeZB::radio_status_update(AtCmdFrame::ModemStatus modem_status)
     digi_log(LogLevelDebug, "\r\nUpdating radio status: %02x\r\n", modem_status);
 }
 
-TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr)
+TxStatus XBeeDM::send_data(const RemoteXBee& remote, const uint8_t *const data, uint16_t len, bool syncr)
 {
     if (!remote.is_valid_addr64b()) {
         return TxStatusInvalidAddr;
@@ -284,7 +167,7 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, 
     const uint64_t remote64 = remote.get_addr64();
     const uint16_t remote16 = remote.get_addr16();
 
-    TxFrameZB frame = TxFrameZB(remote64, remote16, BROADCAST_RADIUS_USE_NH,
+    TxFrameDM frame = TxFrameDM(remote64, remote16, BROADCAST_RADIUS_USE_NH,
                                 _tx_options, data, len);
     if (syncr) {
         return send_data(&frame);
@@ -295,7 +178,7 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, const uint8_t *const data, 
     }
 }
 
-TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep,
+TxStatus XBeeDM::send_data(const RemoteXBee& remote, uint8_t source_ep,
                                 uint8_t dest_ep, uint16_t cluster_id, uint16_t profile_id,
                                 const uint8_t *const data, uint16_t len, bool syncr)
 {
@@ -306,7 +189,7 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep,
     const uint64_t remote64 = remote.get_addr64();
     const uint16_t remote16 = remote.get_addr16();
 
-    TxFrameZB frame = TxFrameZB(remote64, remote16, source_ep, dest_ep,
+    TxFrameDM frame = TxFrameDM(remote64, remote16, source_ep, dest_ep,
                                 cluster_id, profile_id, BROADCAST_RADIUS_USE_NH,
                                 _tx_options, data, len);
     if (syncr) {
@@ -318,11 +201,11 @@ TxStatus XBeeZB::send_data(const RemoteXBee& remote, uint8_t source_ep,
     }
 }
 
-TxStatus XBeeZB::send_data_to_coordinator(const uint8_t *const data, uint16_t len, bool syncr)
+TxStatus XBeeDM::send_data_to_coordinator(const uint8_t *const data, uint16_t len, bool syncr)
 {
     const uint64_t remaddr = ADDR64_COORDINATOR;
 
-    TxFrameZB frame = TxFrameZB(remaddr, ADDR16_UNKNOWN, BROADCAST_RADIUS_USE_NH, _tx_options, data, len);
+    TxFrameDM frame = TxFrameDM(remaddr, ADDR16_UNKNOWN, BROADCAST_RADIUS_USE_NH, _tx_options, data, len);
     if (syncr) {
         return send_data(&frame);
     } else {
@@ -332,34 +215,29 @@ TxStatus XBeeZB::send_data_to_coordinator(const uint8_t *const data, uint16_t le
     }
 }
 
-RemoteXBeeZB XBeeZB::get_remote_node_by_id(const char * const node_id)
+RemoteXBeeDM XBeeDM::get_remote_node_by_id(const char * const node_id)
 {
     uint64_t addr64;
     uint16_t addr16;
     _get_remote_node_by_id(node_id, &addr64, &addr16);
-    return RemoteXBeeZB(addr64, addr16);
+    return RemoteXBeeDM(addr64);
 }
 
-XBeeZB::AssocStatus XBeeZB::get_assoc_status(void)
+XBeeDM::AssocStatus XBeeDM::get_assoc_status(void)
 {
     return (AssocStatus)get_AI();
 }
 
-bool XBeeZB::is_joined()
-{
-    return get_assoc_status() == Joined ? true : false;
-}
-
-void XBeeZB::register_node_discovery_cb(node_discovery_zb_cb_t function)
+void XBeeDM::register_node_discovery_cb(node_discovery_dm_cb_t function)
 {
     if (_nd_handler == NULL) {
-        _nd_handler = new FH_NodeDiscoveryZB();
+        _nd_handler = new FH_NodeDiscoveryDM();
         register_frame_handler(_nd_handler);
     }
     _nd_handler->register_node_discovery_cb(function);
 }
 
-void XBeeZB::unregister_node_discovery_cb()
+void XBeeDM::unregister_node_discovery_cb()
 {
     if (_nd_handler != NULL) {
         _nd_handler->unregister_node_discovery_cb();
@@ -369,16 +247,16 @@ void XBeeZB::unregister_node_discovery_cb()
     }
 }
 
-void XBeeZB::register_receive_cb(receive_zb_cb_t function)
+void XBeeDM::register_receive_cb(receive_dm_cb_t function)
 {
     if (_rx_pkt_handler == NULL) {
-        _rx_pkt_handler = new FH_RxPacketZB();
+        _rx_pkt_handler = new FH_RxPacketDM();
         register_frame_handler(_rx_pkt_handler);
     }
     _rx_pkt_handler->register_receive_cb(function);
 }
 
-void XBeeZB::unregister_receive_cb()
+void XBeeDM::unregister_receive_cb()
 {
     if (_rx_pkt_handler != NULL) {
         _rx_pkt_handler->unregister_receive_cb();
@@ -388,16 +266,16 @@ void XBeeZB::unregister_receive_cb()
     }
 }
 
-void XBeeZB::register_io_sample_cb(io_data_cb_zb_t function)
+void XBeeDM::register_io_sample_cb(io_data_cb_dm_t function)
 {
     if (_io_data_handler == NULL) {
-        _io_data_handler = new FH_IoDataSampeZB();
+        _io_data_handler = new FH_IoDataSampeDM();
         register_frame_handler(_io_data_handler);
     }
     _io_data_handler->register_io_data_cb(function);
 }
 
-void XBeeZB::unregister_io_sample_cb()
+void XBeeDM::unregister_io_sample_cb()
 {
     if (_io_data_handler != NULL) {
         _io_data_handler->unregister_io_data_cb();
@@ -407,7 +285,7 @@ void XBeeZB::unregister_io_sample_cb()
     }
 }
 
-AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * const param, uint32_t * const data)
+AtCmdFrame::AtCmdResp XBeeDM::get_param(const RemoteXBee& remote, const char * const param, uint32_t * const data)
 {
     if (!remote.is_valid_addr64b()) {
         return AtCmdFrame::AtCmdRespInvalidAddr;
@@ -428,7 +306,7 @@ AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * c
     return atCmdResponse;
 }
 
-AtCmdFrame::AtCmdResp XBeeZB::set_param(const RemoteXBee& remote, const char * const param, uint32_t data)
+AtCmdFrame::AtCmdResp XBeeDM::set_param(const RemoteXBee& remote, const char * const param, uint32_t data)
 {
     if (!remote.is_valid_addr64b()) {
         return AtCmdFrame::AtCmdRespInvalidAddr;
@@ -441,7 +319,7 @@ AtCmdFrame::AtCmdResp XBeeZB::set_param(const RemoteXBee& remote, const char * c
     return send_at_cmd(&cmd_frame, NULL, NULL, RadioRemote);
 }
 
-AtCmdFrame::AtCmdResp XBeeZB::set_param(const RemoteXBee& remote, const char * const param, const uint8_t * data, uint16_t len)
+AtCmdFrame::AtCmdResp XBeeDM::set_param(const RemoteXBee& remote, const char * const param, const uint8_t * data, uint16_t len)
 {
     if (!remote.is_valid_addr64b()) {
         return AtCmdFrame::AtCmdRespInvalidAddr;
@@ -454,7 +332,7 @@ AtCmdFrame::AtCmdResp XBeeZB::set_param(const RemoteXBee& remote, const char * c
     return send_at_cmd(&cmd_frame, NULL, NULL, RadioRemote);
 }
 
-AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * const param, uint8_t * const data, uint16_t * const len)
+AtCmdFrame::AtCmdResp XBeeDM::get_param(const RemoteXBee& remote, const char * const param, uint8_t * const data, uint16_t * const len)
 {
 
     if (!remote.is_valid_addr64b()) {
@@ -468,11 +346,11 @@ AtCmdFrame::AtCmdResp XBeeZB::get_param(const RemoteXBee& remote, const char * c
     return send_at_cmd(&cmd_frame, data, len, RadioRemote, false);
 }
 
-static void get_dio_cmd(XBeeZB::IoLine line, char * const iocmd)
+static void get_dio_cmd(XBeeDM::IoLine line, char * const iocmd)
 {
-    if (line >= XBeeZB::DIO10) {
+    if (line >= XBeeDM::DIO10_PWM0) {
         iocmd[0] = 'P';
-        iocmd[1] = '0' + line - XBeeZB::DIO10;
+        iocmd[1] = '0' + line - XBeeDM::DIO10_PWM0;
     } else {
         iocmd[0] = 'D';
         iocmd[1] = '0' + line;
@@ -480,7 +358,7 @@ static void get_dio_cmd(XBeeZB::IoLine line, char * const iocmd)
     iocmd[2] = '\0';
 }
 
-RadioStatus XBeeZB::set_pin_config(const RemoteXBee& remote, IoLine line, IoMode mode)
+RadioStatus XBeeDM::set_pin_config(const RemoteXBee& remote, IoLine line, IoMode mode)
 {
     AtCmdFrame::AtCmdResp cmdresp;
     char iocmd[3];
@@ -496,7 +374,7 @@ RadioStatus XBeeZB::set_pin_config(const RemoteXBee& remote, IoLine line, IoMode
     return Success;
 }
 
-RadioStatus XBeeZB::get_pin_config(const RemoteXBee& remote, IoLine line, IoMode * const mode)
+RadioStatus XBeeDM::get_pin_config(const RemoteXBee& remote, IoLine line, IoMode * const mode)
 {
     AtCmdFrame::AtCmdResp cmdresp;
     char iocmd[3];
@@ -513,66 +391,88 @@ RadioStatus XBeeZB::get_pin_config(const RemoteXBee& remote, IoLine line, IoMode
     return Success;
 }
 
-RadioStatus XBeeZB::set_dio(const RemoteXBee& remote, IoLine line, DioVal val)
+RadioStatus XBeeDM::set_dio(const RemoteXBee& remote, IoLine line, DioVal val)
 {
     return set_pin_config(remote, line, val == Low ? DigitalOutLow : DigitalOutHigh);
 }
 
-RadioStatus XBeeZB::get_dio(const RemoteXBee& remote, IoLine line, DioVal * const val)
+RadioStatus XBeeDM::get_dio(const RemoteXBee& remote, IoLine line, DioVal * const val)
 {
     return get_iosample(remote).get_dio(line, val);
 }
 
-RadioStatus XBeeZB::get_adc(const RemoteXBee& remote, IoLine line, uint16_t * const val)
+RadioStatus XBeeDM::get_adc(const RemoteXBee& remote, IoLine line, uint16_t * const val)
 {
     return get_iosample(remote).get_adc(line, val);
 }
 
-IOSampleZB XBeeZB::get_iosample(const RemoteXBee& remote)
+RadioStatus XBeeDM::set_pwm(const RemoteXBee& remote, IoLine line, float duty_cycle)
 {
-    uint8_t io_sample[MAX_IO_SAMPLE_ZB_LEN];
+    AtCmdFrame::AtCmdResp cmdresp;
+    char iocmd[3] = { 'M', '0', '\0' };
+
+    if (line != DIO10_PWM0 && line != DIO11_PWM1) {
+        return Failure;
+    }
+    if (line == DIO11_PWM1) {
+        iocmd[1] = '1';
+    }
+
+    uint16_t pwm_val = (uint16_t)(duty_cycle * DR_PWM_MAX_VAL / 100);
+
+    cmdresp = set_param(remote, iocmd, pwm_val);
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
+}
+
+IOSampleDM XBeeDM::get_iosample(const RemoteXBee& remote)
+{
+    uint8_t io_sample[MAX_IO_SAMPLE_DM_LEN];
     uint16_t len = sizeof io_sample;
 
     RadioStatus resp = _get_iosample(remote, io_sample, &len);
     if (resp != Success) {
-        digi_log(LogLevelError, "XBeeZB::get_iosample failed to get an IOSample\r\n");
+        digi_log(LogLevelError, "XBeeDM::get_iosample failed to get an IOSample\r\n");
         len = 0;
     }
 
-    return IOSampleZB(io_sample, len);
+    return IOSampleDM(io_sample, len);
 }
 
-static uint16_t get_dio_pr_mask(XBeeZB::IoLine line)
+static uint16_t get_dio_pr_mask(XBeeDM::IoLine line)
 {
     switch (line) {
-        case XBeeZB::DIO4:
+        case XBeeDM::DIO4:
             return (1 << 0);
-        case XBeeZB::DIO3_AD3:
+        case XBeeDM::DIO3_AD3:
             return (1 << 1);
-        case XBeeZB::DIO2_AD2:
+        case XBeeDM::DIO2_AD2:
             return (1 << 2);
-        case XBeeZB::DIO1_AD1:
+        case XBeeDM::DIO1_AD1:
             return (1 << 3);
-        case XBeeZB::DIO0_AD0:
+        case XBeeDM::DIO0_AD0:
             return (1 << 4);
-        case XBeeZB::DIO6:
+        case XBeeDM::DIO6:
             return (1 << 5);
-        case XBeeZB::DIO5:
+        case XBeeDM::DIO8:
+            return (1 << 6);
+        case XBeeDM::DIO5:
             return (1 << 8);
-        case XBeeZB::DIO12:
+        case XBeeDM::DIO9:
+            return (1 << 9);
+        case XBeeDM::DIO12:
             return (1 << 10);
-        case XBeeZB::DIO10:
+        case XBeeDM::DIO10_PWM0:
             return (1 << 11);
-        case XBeeZB::DIO11:
+        case XBeeDM::DIO11_PWM1:
             return (1 << 12);
-        case XBeeZB::DIO7:
+        case XBeeDM::DIO7:
             return (1 << 13);
         default:
             return 0;
     }
 }
 
-RadioStatus XBeeZB::set_pin_pull_up(const RemoteXBee& remote, IoLine line, bool enable)
+RadioStatus XBeeDM::set_pin_pull_up(const RemoteXBee& remote, IoLine line, bool enable)
 {
     AtCmdFrame::AtCmdResp cmdresp;
     uint32_t var32;
@@ -586,7 +486,7 @@ RadioStatus XBeeZB::set_pin_pull_up(const RemoteXBee& remote, IoLine line, bool 
 
     const uint16_t dio_mask = get_dio_pr_mask(line);
     if (dio_mask == 0) {
-        digi_log(LogLevelError, "XBeeZB::set_pin_pull_up: invalid pin %d\r\n", line);
+        digi_log(LogLevelError, "XBeeDM::set_pin_pull_up: invalid pin %d\r\n", line);
         return Failure;
     }
 
@@ -604,18 +504,18 @@ RadioStatus XBeeZB::set_pin_pull_up(const RemoteXBee& remote, IoLine line, bool 
     return Success;
 }
 
-static uint16_t get_dio_ic_mask(XBeeZB::IoLine line)
+static uint16_t get_dio_ic_mask(XBeeDM::IoLine line)
 {
-    if (line < XBeeZB::DIO12) {
+    if (line <= XBeeDM::DIO12) {
         return (1 << line);
     }
     return 0;
 }
 
-RadioStatus XBeeZB::enable_dio_change_detection(const RemoteXBee& remote, IoLine line, bool enable)
+RadioStatus XBeeDM::enable_dio_change_detection(const RemoteXBee& remote, IoLine line, bool enable)
 {
-    if (line > DIO11) {
-        digi_log(LogLevelError, "XBeeZB::enable_dio_change_detection: pin not supported (%d)\r\n", line);
+    if (line > DIO12) {
+        digi_log(LogLevelError, "XBeeDM::enable_dio_change_detection: pin not supported (%d)\r\n", line);
         return Failure;
     }
 
@@ -631,7 +531,7 @@ RadioStatus XBeeZB::enable_dio_change_detection(const RemoteXBee& remote, IoLine
 
     const uint16_t dio_mask = get_dio_ic_mask(line);
     if (dio_mask == 0) {
-        digi_log(LogLevelError, "XBeeZB::enable_dio_change_detection: invalid pin %d\r\n", line);
+        digi_log(LogLevelError, "XBeeDM::enable_dio_change_detection: invalid pin %d\r\n", line);
         return Failure;
     }
 

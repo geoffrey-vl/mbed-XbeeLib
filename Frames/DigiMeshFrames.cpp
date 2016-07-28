@@ -10,7 +10,7 @@
  * =======================================================================
  */
 
-#include "ZigbeeFrames.h"
+#include "DigiMeshFrames.h"
 
 #define FRAME_ID_LEN              1
 #define ADDR64_LEN                8
@@ -30,7 +30,7 @@
                                    PROFILE_ID_LEN)
 
 /** Class constructor */
-TxFrameZB::TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t broadcast_rad, uint8_t tx_opt,
+TxFrameDM::TxFrameDM(uint64_t addr, uint16_t addr16, uint8_t broadcast_rad, uint8_t tx_opt,
                 const uint8_t *const data, uint16_t len)
 {
     uint8_t frame_data[TX_REQUEST_OVERHEAD + len];
@@ -55,7 +55,7 @@ TxFrameZB::TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t broadcast_rad, uint
 }
 
 /** Class constructor */
-TxFrameZB::TxFrameZB(uint64_t addr, uint16_t addr16, uint8_t source_ep, uint8_t dest_ep,
+TxFrameDM::TxFrameDM(uint64_t addr, uint16_t addr16, uint8_t source_ep, uint8_t dest_ep,
                   uint16_t cluster_id, uint16_t profile_id, uint8_t broadcast_rad,
                   uint8_t tx_opt, const uint8_t *const data, uint16_t len)
 {

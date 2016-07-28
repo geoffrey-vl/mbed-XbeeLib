@@ -58,22 +58,6 @@ RadioStatus XBee::get_power_level(uint8_t * const  level)
     return Success;
 }
 
-RadioStatus XBee::get_network_address(uint16_t * const  addr16)
-{
-    if (addr16 == NULL) {
-        return Failure;
-    }
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    uint32_t var32;
-    cmdresp = get_param("MY", &var32);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        return Failure;
-    }
-    *addr16 = var32;
-    return Success;
-}
-
 RadioStatus XBee::software_reset(void)
 {
     volatile uint16_t * const rst_cnt_p = &_wd_reset_cnt;
@@ -168,17 +152,15 @@ uint8_t XBee::get_tx_options() const
 
 RadioStatus XBee::start_node_discovery()
 {
-    AtCmdFrame::AtCmdResp cmdresp;
-    uint32_t nd_timeout_cfg;
+    RadioStatus status;
+    uint16_t nd_timeout;
 
-    cmdresp = get_param("NT", &nd_timeout_cfg);
-    if (cmdresp != AtCmdFrame::AtCmdRespOk) {
-        return Failure;
+    status = get_node_discovery_timeout(&nd_timeout);
+    if (status != Success) {
+	    return status;
     }
 
-    const unsigned int guard_time_ms = 1000;
-    const uint32_t nd_timeout_cfg_ms = nd_timeout_cfg * 100;
-    _nd_timeout = nd_timeout_cfg_ms + guard_time_ms;
+    _nd_timeout = nd_timeout;
 
     _nd_timer.start();
 
@@ -217,15 +199,16 @@ void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const a
 
     const uint16_t old_timeout = _timeout_ms;
 
-    uint32_t nd_timeout_100msec;
-    const AtCmdFrame::AtCmdResp nt_resp = get_param("NT", &nd_timeout_100msec);
-    if (nt_resp != AtCmdFrame::AtCmdRespOk) {
-        _timeout_ms = 10000;
-    } else {
-        _timeout_ms = (uint16_t)nd_timeout_100msec * 100 + 1000;
-    }
+    RadioStatus status;
+    uint16_t nd_timeout;
+	bool wait_for_complete_timeout;
 
-    const int nd_timeout = _timeout_ms;
+    status = get_node_discovery_timeout(&nd_timeout, &wait_for_complete_timeout);
+    if (status != Success) {
+	    return;
+    }
+	_timeout_ms = nd_timeout;
+
     Timer nd_timer = Timer();
 
     nd_timer.start();
@@ -263,18 +246,20 @@ void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const a
     rmemcpy((uint8_t *)addr64, resp_frame->get_data() + ATCMD_RESP_DATA_OFFSET + sizeof *addr16, sizeof *addr64);
     _framebuf_syncr.free_frame(resp_frame);
 
-    while (nd_timer.read_ms() < nd_timeout) {
-        wait_ms(10);
+    if (wait_for_complete_timeout) {
+        while (nd_timer.read_ms() < nd_timeout) {
+            wait_ms(10);
+        }
     }
 
     return;
 }
 
-RadioStatus XBee::config_node_discovery(uint16_t timeout_ms, uint8_t options)
+RadioStatus XBee::config_node_discovery(uint16_t backoff_ms, uint8_t options)
 {
     AtCmdFrame::AtCmdResp cmdresp;
 
-    cmdresp = set_param("NT", (uint8_t)(timeout_ms / 100));
+    cmdresp = set_param("NT", (uint8_t)(backoff_ms / 100));
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
     }
@@ -291,7 +276,7 @@ RadioStatus XBee::config_node_discovery(uint16_t timeout_ms, uint8_t options)
     return Success;
 }
 
-RadioStatus XBee::get_config_node_discovery(uint16_t * const timeout_ms, uint8_t * const options)
+RadioStatus XBee::get_config_node_discovery(uint16_t * const backoff_ms, uint8_t * const options)
 {
     AtCmdFrame::AtCmdResp cmdresp;
     uint32_t var32;
@@ -300,7 +285,7 @@ RadioStatus XBee::get_config_node_discovery(uint16_t * const timeout_ms, uint8_t
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {
         return Failure;
     }
-    *timeout_ms = var32;
+    *backoff_ms = var32;
 
     cmdresp = get_param("NO", &var32);
     if (cmdresp != AtCmdFrame::AtCmdRespOk) {

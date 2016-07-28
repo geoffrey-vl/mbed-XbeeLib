@@ -82,6 +82,40 @@ class FH_NodeDiscoveryZB : public FH_AtCmdResp
  * @defgroup callback_types "Callback types declaration"
  * @{
  */
+/** Node Discovery Response callback type declaration for ZigBee
+  * @param remote discovered remote node.
+  * @param node_id Node Identifier (NI parameter) of remote.
+  */
+typedef void (*node_discovery_dm_cb_t)(const RemoteXBeeDM& remote, char const * const node_id);
+/**
+ * @}
+ */
+
+class FH_NodeDiscoveryDM : public FH_AtCmdResp
+{
+    private:
+        /** Callback function, invoked (if registered) when an at command response packet is received */
+        node_discovery_dm_cb_t node_discovery_cb;
+
+    public:
+
+        /** Class constructor */
+        FH_NodeDiscoveryDM();
+
+        /** Class destructor */
+        virtual ~FH_NodeDiscoveryDM();
+
+        virtual void process_frame_data(const ApiFrame *const frame);
+
+        virtual void register_node_discovery_cb(node_discovery_dm_cb_t function);
+
+        virtual void unregister_node_discovery_cb();
+};
+
+/**
+ * @defgroup callback_types "Callback types declaration"
+ * @{
+ */
 /** Node Discovery Response callback type declaration for 802.15.4
   * @param remote discovered remote node.
   * @param node_id Node Identifier (NI parameter) of remote.
