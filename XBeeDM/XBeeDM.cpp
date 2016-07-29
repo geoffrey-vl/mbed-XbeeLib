@@ -102,6 +102,17 @@ RadioStatus XBeeDM::get_network_id(uint16_t * const network_id)
     return Success;
 }
 
+RadioStatus XBeeDM::set_tc_link_key(const uint8_t * const key, const uint16_t length)
+{
+    if (key == NULL || length == 0 || length > 16) {
+        return Failure;
+    }
+    AtCmdFrame::AtCmdResp cmdresp;
+
+    cmdresp = set_param("KY", key, length);
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
+}
+
 RadioStatus XBeeDM::get_node_discovery_timeout(uint16_t * const timeout_ms)
 {
     AtCmdFrame::AtCmdResp cmdresp;
@@ -123,25 +134,6 @@ RadioStatus XBeeDM::get_node_discovery_timeout(uint16_t * const timeout_ms, bool
     *wait_for_complete_timeout = false;
 
     return status;
-}
-
-RadioStatus XBeeDM::set_network_security_key(const uint8_t * const key, const uint16_t length)
-{
-    if (key == NULL || length == 0 || length > 16) {
-        return Failure;
-    }
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = set_param("NK", key, length);
-    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
-}
-
-RadioStatus XBeeDM::set_encryption_options(const uint8_t options)
-{
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = set_param("EO", options);
-    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
 void XBeeDM::radio_status_update(AtCmdFrame::ModemStatus modem_status)
@@ -221,11 +213,6 @@ RemoteXBeeDM XBeeDM::get_remote_node_by_id(const char * const node_id)
     uint16_t addr16;
     _get_remote_node_by_id(node_id, &addr64, &addr16);
     return RemoteXBeeDM(addr64);
-}
-
-XBeeDM::AssocStatus XBeeDM::get_assoc_status(void)
-{
-    return (AssocStatus)get_AI();
 }
 
 void XBeeDM::register_node_discovery_cb(node_discovery_dm_cb_t function)

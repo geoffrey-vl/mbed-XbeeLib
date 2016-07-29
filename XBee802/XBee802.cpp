@@ -137,6 +137,17 @@ RadioStatus XBee802::set_network_address(uint16_t  addr16)
     return Success;
 }
 
+RadioStatus XBee802::set_tc_link_key(const uint8_t * const key, const uint16_t length)
+{
+    if (key == NULL || length == 0 || length > 16) {
+        return Failure;
+    }
+    AtCmdFrame::AtCmdResp cmdresp;
+
+    cmdresp = set_param("KY", key, length);
+    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
+}
+
 RadioStatus XBee802::get_node_discovery_timeout(uint16_t * const timeout_ms)
 {
     AtCmdFrame::AtCmdResp cmdresp;

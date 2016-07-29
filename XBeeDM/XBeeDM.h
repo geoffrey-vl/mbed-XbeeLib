@@ -45,25 +45,6 @@ class XBeeDM : public XBee
             DIO12      = 12  /**< DIO12 pin */
         };
 
-        enum AssocStatus {
-            ErrorReading    = -1,       /**< Error occurred when reading parameter. */
-            Joined          = 0x00,     /**< Successfully formed or joined a network. (Coordinators form a network, routers and end devices join a network.) */
-            NoPANs          = 0x21,     /**< Scan found no PANs */
-            NoValidPAN      = 0x22,     /**< Scan found no valid PANs based on current SC and ID settings */
-            JoinNotAllowed  = 0x23,     /**< Valid Coordinator or Routers found, but they are not allowing joining (NJ expired). */
-            NoBeacons       = 0x24,     /**< No joinable beacons were found. */
-            Unexpected      = 0x25,     /**< Unexpected state, node should not be attempting to join at this time. */
-            JoinFailed      = 0x27,     /**< Node Joining attempt failed (typically due to incompatible security settings). */
-            CoordStartFail  = 0x2A,     /**< Coordinator start attempt failed */
-            CheckingCoord   = 0x2B,     /**< Checking for an existing coordinator. */
-            LeaveFail       = 0x2C,     /**< Attempt to leave the network failed. */
-            JoinNoResponse  = 0xAB,     /**< Attempted to join a device that did not respond. */
-            SecKeyUnsec     = 0xAC,     /**< Secure join error - network security key received unsecured. */
-            SecKeyNotRec    = 0xAD,     /**< Secure join error - network security key not received. */
-            SecBadKey       = 0xAF,     /**< Secure join error - joining device does not have the right preconfigured link key. */
-            Scanning        = 0xFF      /**< Scanning for a ZigBee network (routers and end devices). */
-        };
-
         /** Class constructor
          * @param tx the TX pin of the UART that will interface the XBee module
          * @param rx the RX pin of the UART that will interface the XBee module
@@ -123,7 +104,7 @@ class XBeeDM : public XBee
          */
         RadioStatus get_network_id(uint16_t * const network_id);
 
-        /** set_network_security_key - (Coordinator only) Set the 128-bit AES network encryption key. If set to 0 (default), the module will select a random network key.
+        /** set_tc_link_key - Sets key used for encryption and decryption (ZigBee trust center link key).
          *  It is not recommended to set the key programmatically, because it could be read through the raw serial port bits.
          *  @param key pointer to the 128-bit AES key
          *  @param length size of the buffer pointed by 'key'
@@ -131,19 +112,7 @@ class XBeeDM : public XBee
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-        RadioStatus set_network_security_key(const uint8_t * const key, const uint16_t length);
-
-#define XBEE_DM_ENC_OPT_SEND_KEY_ON_JOIN    0x01
-#define XBEE_DM_ENC_OPT_USE_TRUST_CENTER    0x02
-        /** set_encryption_options - Configure options for encryption. Unused option bits should be set to 0. Options include:
-         *  - XBEE_DM_ENC_OPT_SEND_KEY_ON_JOIN - Send the security key unsecured over-the-air during joins
-         *  - XBEE_DM_ENC_OPT_USE_TRUST_CENTER - Use trust center (coordinator only)
-         *  @param options bit mask with the encryption options
-         *  @returns
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-        RadioStatus set_encryption_options(const uint8_t options);
+        RadioStatus set_tc_link_key(const uint8_t * const key, const uint16_t length);
 
         /** register_node_discovery_cb - registers the callback function that will be called
          * when the responses to the node discovery command arrive
@@ -218,12 +187,6 @@ class XBeeDM : public XBee
          *     the error code otherwise
          */
         TxStatus send_data_to_coordinator(const uint8_t *const data, uint16_t len, bool syncr = true);
-
-        /** get_assoc_status - returns current network association status. This wraps AI parameter, for more information refer to moudle's Reference Manual.
-         *
-         *  @returns an AssocStatus with current network association status.
-         */
-        AssocStatus get_assoc_status(void);
 
         /** get_remote_node_by_id - searches for a device in the network with the specified Node Identifier.
          *

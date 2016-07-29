@@ -326,6 +326,9 @@ class XBee
 #define XBEEZB_ND_OPTION_APPEND_DD          (1 << 0)
 #define XBEEZB_ND_OPTION_SELF_RESPONSE      (1 << 1)
 #define XBEE802_ND_OPTION_SELF_RESPONSE     (1 << 0)
+#define XBEEDM_ND_OPTION_APPEND_DD          (1 << 0)
+#define XBEEDM_ND_OPTION_SELF_RESPONSE      (1 << 1)
+#define XBEEDM_ND_OPTION_INCLUDE_RSSI       (1 << 2)
 
         /** config_node_discovery - configures the node discovery operation
          *
@@ -335,6 +338,9 @@ class XBee
          *              XBEE802_ND_OPTION_SELF_RESPONSE - to allow the module self responding (802.15.4 only)
          *              XBEEZB_ND_OPTION_SELF_RESPONSE - to allow the module self responding (ZigBee only)
          *              XBEEZB_ND_OPTION_APPEND_DD - to append the DD value to the response (ZigBee only)
+         *              XBEEDM_ND_OPTION_INCLUDE_RSSI - to include RSSI information in response (DigiMesh only)
+         *              XBEEDM_ND_OPTION_SELF_RESPONSE - to allow the module self responding (DigiMesh only)
+         *              XBEEDM_ND_OPTION_APPEND_DD - to append the DD value to the response (DigiMesh only)
          *  @returns
          *     Success if the operation was successful,
          *     Failure otherwise
