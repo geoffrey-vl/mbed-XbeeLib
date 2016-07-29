@@ -261,17 +261,6 @@ RadioStatus XBeeZB::set_encryption_options(const uint8_t options)
     return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
 }
 
-RadioStatus XBeeZB::set_tc_link_key(const uint8_t * const key, const uint16_t length)
-{
-    if (key == NULL || length == 0 || length > 16) {
-        return Failure;
-    }
-    AtCmdFrame::AtCmdResp cmdresp;
-
-    cmdresp = set_param("KY", key, length);
-    return cmdresp == AtCmdFrame::AtCmdRespOk ? Success : Failure;
-}
-
 void XBeeZB::radio_status_update(AtCmdFrame::ModemStatus modem_status)
 {
     /* Update the radio status variables */

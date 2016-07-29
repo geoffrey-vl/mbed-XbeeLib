@@ -104,16 +104,6 @@ class XBeeDM : public XBee
          */
         RadioStatus get_network_id(uint16_t * const network_id);
 
-        /** set_tc_link_key - Sets key used for encryption and decryption (ZigBee trust center link key).
-         *  It is not recommended to set the key programmatically, because it could be read through the raw serial port bits.
-         *  @param key pointer to the 128-bit AES key
-         *  @param length size of the buffer pointed by 'key'
-         *  @returns
-         *     Success if the operation was successful,
-         *     Failure otherwise
-         */
-        RadioStatus set_tc_link_key(const uint8_t * const key, const uint16_t length);
-
         /** register_node_discovery_cb - registers the callback function that will be called
          * when the responses to the node discovery command arrive
          *
