@@ -223,17 +223,20 @@ RadioStatus XBee::device_reset()
 
 RadioStatus XBee::wait_for_module_to_reset(volatile uint16_t *rst_cnt_p, uint16_t init_rst_cnt)
 {
-    Timer timer = Timer();
-    timer.start();
+    Timer* ptimer = new Timer();
+    ptimer->start();
 
-    while (*rst_cnt_p == init_rst_cnt && timer.read_ms() < RESET_TIMEOUT_MS) {
+    while (*rst_cnt_p == init_rst_cnt && ptimer->read_ms() < RESET_TIMEOUT_MS) {
         wait_ms(100);
     }
 
     if (*rst_cnt_p == init_rst_cnt) {
         digi_log(LogLevelWarning, "Reset Timeout\r\n");
+        delete ptimer;
         return Failure;
     }
+
+    delete ptimer;
     return Success;
 }
 
@@ -496,10 +499,10 @@ uint16_t XBee::get_timeout(void) const
 ApiFrame * XBee::get_this_api_frame(uint8_t id, ApiFrame::ApiFrameType type,
                                           ApiFrame::ApiFrameType type2)
 {
-    Timer timer = Timer();
-    timer.start();
+    Timer* ptimer = new Timer();
+    ptimer->start();
 
-    while (timer.read_ms() < _timeout_ms) {
+    while (ptimer->read_ms() < _timeout_ms) {
         ApiFrame * frame = _framebuf_syncr.get_next_complete_frame();
         if (frame == NULL) {
             wait_ms(10);
@@ -520,10 +523,14 @@ ApiFrame * XBee::get_this_api_frame(uint8_t id, ApiFrame::ApiFrameType type,
         }
 
         /* frame found */
+        delete ptimer;
+
         return frame;
     }
 
     digi_log(LogLevelWarning, "Frame type: %02x, id: %02x, timeout\r\n", (uint8_t)type, id);
+
+    delete ptimer;
 
     return NULL;
 }

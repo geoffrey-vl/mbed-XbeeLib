@@ -209,9 +209,9 @@ void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const a
     }
 	_timeout_ms = nd_timeout;
 
-    Timer nd_timer = Timer();
+    Timer* pnd_timer = new Timer();
 
-    nd_timer.start();
+    pnd_timer->start();
 
     AtCmdFrame atnd_frame = AtCmdFrame("ND", (const uint8_t *)node_id, strlen(node_id));
     const uint8_t frame_id = atnd_frame.get_frame_id();
@@ -225,6 +225,7 @@ void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const a
 
     if (resp_frame == NULL) {
         digi_log(LogLevelWarning, "_get_remote_node_by_id: timeout when waiting for ATND response");
+        delete pnd_timer;
         return;
     }
 
@@ -232,6 +233,7 @@ void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const a
         /* In 802.15.4 this might be the OK or Timeout message with no information */
         digi_log(LogLevelInfo, "_get_remote_node_by_id: node not found\r\n", __FUNCTION__, node_id);
         _framebuf_syncr.free_frame(resp_frame);
+        delete pnd_timer;
         return;
     }
 
@@ -239,6 +241,7 @@ void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const a
     if (resp != AtCmdFrame::AtCmdRespOk) {
         digi_log(LogLevelWarning, "_get_remote_node_by_id: send_at_cmd bad response: 0x%x\r\n", resp);
         _framebuf_syncr.free_frame(resp_frame);
+        delete pnd_timer;
         return;
     }
 
@@ -247,11 +250,12 @@ void XBee::_get_remote_node_by_id(const char * const node_id, uint64_t * const a
     _framebuf_syncr.free_frame(resp_frame);
 
     if (wait_for_complete_timeout) {
-        while (nd_timer.read_ms() < nd_timeout) {
+        while (pnd_timer->read_ms() < nd_timeout) {
             wait_ms(10);
         }
     }
 
+    delete pnd_timer;
     return;
 }
 
