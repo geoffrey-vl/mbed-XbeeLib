@@ -15,11 +15,30 @@
 
 #include "config.h"
 
+
+#if defined(ENABLE_THREAD_SAFE_LOGGING)
+
+#include "mbed.h"
+
+extern EventQueue s_logging_event_queue;
+
+#endif
+
+
 #if defined(ENABLE_LOGGING)
 
 #include "DigiLogger.h"
 
+#if !(defined(ENABLE_THREAD_SAFE_LOGGING))
+
 #define digi_log(...)  DigiLog::DigiLogger::log_format(__VA_ARGS__);
+
+#else
+
+#define digi_log(...)  s_logging_event_queue.call(&DigiLog::DigiLogger::log_format, __VA_ARGS__);
+
+#endif
+
 #else
 #define digi_log(...)  do {} while(0)
 #endif
@@ -27,11 +46,24 @@
 #if defined(ENABLE_ASSERTIONS)
 #include "mbed.h"
 #if !(defined assert)
-#define assert(expr)            if (!(expr)) {                                      \
-                                    digi_log(LogLevelNone, "Assertion failed: %s, file %s, line %d\n", \
+
+#if !(defined(ENABLE_THREAD_SAFE_LOGGING))
+
+    #define assert(expr)        if (!(expr)) {                                      \
+                                    DigiLog::DigiLogger::log_format(LogLevelNone, "Assertion failed: %s, file %s, line %d\n", \
                                          #expr, __FILE__, __LINE__);                \
                                     mbed_die();                                     \
                                 }
+
+#else
+
+    #define assert(expr)        if (!(expr)) {                                      \
+                                    s_logging_event_queue.call(&DigiLog::DigiLogger::log_format, LogLevelNone, "Assertion failed: %s, file %s, line %d\n", #expr, __FILE__, __LINE__ ); \
+                                    mbed_die();                                     \
+                                }
+
+#endif
+
 #endif
 #else
 #define assert(expr)

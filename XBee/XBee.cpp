@@ -13,6 +13,13 @@
 #include "XBeeLib.h"
 #include "FrameHandlers/FH_ModemStatus.h"
 
+#if defined(ENABLE_THREAD_SAFE_LOGGING)
+    
+Thread s_thread_for_logging_event_queue;
+EventQueue s_logging_event_queue;
+
+#endif
+
 /* States for the state machine that processes incoming data on the serial port */
 #define WAITING_FOR_START_FRAME (0)
 #define WAITING_FOR_LENGTH_MSB  (1)
@@ -189,6 +196,12 @@ RadioStatus XBee::init(void)
         const ApiFrame frame = ApiFrame(ApiFrame::AtModemStatus, (uint8_t *)&_modem_status, sizeof(_modem_status));
         _modem_status_handler->process_frame_data(&frame);
     }
+
+#if defined(ENABLE_THREAD_SAFE_LOGGING)
+    
+    s_thread_for_logging_event_queue.start(callback(&s_logging_event_queue, &EventQueue::dispatch_forever));
+
+#endif
 
     return Success;
 }
