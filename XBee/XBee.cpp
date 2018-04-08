@@ -135,7 +135,11 @@ RadioStatus XBee::init(void)
 
     _initializing = true;
 
-    const unsigned int max_reset_retries = 3;
+#if defined(ENABLE_THREAD_SAFE_LOGGING)    
+    s_thread_for_logging_event_queue.start(callback(&s_logging_event_queue, &EventQueue::dispatch_forever));
+#endif
+
+    /*const unsigned int max_reset_retries = 3;
     RadioStatus reset_status;
     for (unsigned int i = 0; i < max_reset_retries; i++) {
         reset_status = device_reset();
@@ -145,7 +149,7 @@ RadioStatus XBee::init(void)
     }
     if (reset_status != Success) {
         return reset_status;
-    }
+    }*/
 
     /* Check if radio is in API1 or API2 _mode */
     cmd_resp = get_param("AP", &var32);
@@ -196,12 +200,6 @@ RadioStatus XBee::init(void)
         const ApiFrame frame = ApiFrame(ApiFrame::AtModemStatus, (uint8_t *)&_modem_status, sizeof(_modem_status));
         _modem_status_handler->process_frame_data(&frame);
     }
-
-#if defined(ENABLE_THREAD_SAFE_LOGGING)
-    
-    s_thread_for_logging_event_queue.start(callback(&s_logging_event_queue, &EventQueue::dispatch_forever));
-
-#endif
 
     return Success;
 }
