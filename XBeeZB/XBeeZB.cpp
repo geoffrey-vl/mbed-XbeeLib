@@ -19,8 +19,8 @@ using namespace XBeeLib;
 #define BROADCAST_RADIUS_USE_NH 0x00
 
 /* Class constructor */
-XBeeZB::XBeeZB(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
-         XBee(tx, rx, reset, rts, cts, baud), _nd_handler(NULL), _rx_pkt_handler(NULL), _io_data_handler(NULL)
+XBeeZB::XBeeZB(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, PinName sleep_rq, int baud) :
+         XBee(tx, rx, reset, rts, cts, sleep_rq, baud), _nd_handler(NULL), _rx_pkt_handler(NULL), _io_data_handler(NULL)
 {
 }
 

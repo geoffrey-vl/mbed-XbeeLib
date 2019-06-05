@@ -1,0 +1,44 @@
+{
+    "name": "xbee",
+    "config": {
+         "FRAME_BUFFER_SIZE": {
+               "macro_name": "FRAME_BUFFER_SIZE",
+               "value": 4
+          },
+          "MAX_FRAME_PAYLOAD_LEN": {
+               "macro_name": "MAX_FRAME_PAYLOAD_LEN",
+               "value": 128
+          },
+          "SYNC_OPS_TIMEOUT_MS": {
+               "macro_name": "SYNC_OPS_TIMEOUT_MS",
+               "value": 2000
+          },
+          "ENABLE_LOGGING": {
+               "macro_name": "ENABLE_LOGGING",
+               "value": null
+          },
+          "ENABLE_ASSERTIONS": {
+               "macro_name": "ENABLE_ASSERTIONS",
+               "value": null
+          },
+          "BAUDRATE": 9600,
+          "RADIO_TX": "RADIO_TX",
+          "RADIO_RX": "RADIO_RX",
+          "RADIO_RTS": "RADIO_RTS",
+          "RADIO_CTS": "RADIO_CTS",
+          "RADIO_RESET": "NC",
+          "RADIO_SLEEP_REQ": "NC",
+          "RADIO_ON_SLEEP": "NC"
+    },
+    "target_overrides": {
+          "NUCLEO_L496ZG": {
+               "xbee.BAUDRATE": 9600,
+               "xbee.RADIO_TX": "PD_5",
+               "xbee.RADIO_RX": "PD_6",
+               "xbee.RADIO_RTS": "NC",
+               "xbee.RADIO_CTS": "NC",
+               "xbee.RADIO_RESET": "PD_7",
+               "xbee.RADIO_SLEEP_REQ": "PE_2"
+          }
+    }
+}

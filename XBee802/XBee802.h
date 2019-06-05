@@ -73,7 +73,7 @@ class XBee802 : public XBee
          * @param baud the baudrate for the UART that will interface the XBee module. Note that the module has to be already configured
          * to this baud rate (ATBD parameter). By default it is configured to 9600 bps
          */
-        XBee802(PinName tx, PinName rx, PinName reset = NC, PinName rts = NC, PinName cts = NC, int baud = 9600);
+        XBee802(PinName tx = MBED_CONF_XBEE_RADIO_TX, PinName rx = MBED_CONF_XBEE_RADIO_RX, PinName reset = MBED_CONF_XBEE_RADIO_RESET, PinName rts = MBED_CONF_XBEE_RADIO_RTS, PinName cts = MBED_CONF_XBEE_RADIO_CTS, PinName sleep_rq = MBED_CONF_XBEE_RADIO_SLEEP_REQ, int baud = MBED_CONF_XBEE_BAUDRATE);
 
         /** Class destructor */
         virtual ~XBee802();

@@ -17,8 +17,8 @@
 using namespace XBeeLib;
 
 /* Class constructor */
-XBee802::XBee802(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
-        XBee(tx, rx, reset, rts, cts, baud),
+XBee802::XBee802(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, PinName sleep_rq, int baud) :
+        XBee(tx, rx, reset, rts, cts, sleep_rq, baud),
         _nd_handler(NULL), _rx_64b_handler(NULL), _rx_16b_handler(NULL),
         _io_data_64b_handler(NULL), _io_data_16b_handler(NULL)
 {

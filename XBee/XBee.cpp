@@ -80,15 +80,11 @@ bool XBee::check_radio_flow_control()
 #endif
 
 /* Class constructor */
-XBee::XBee(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, int baud) :
+XBee::XBee(PinName tx, PinName rx, PinName reset, PinName rts, PinName cts, PinName sleep_rq, int baud) :
     _mode(ModeUnknown), _hw_version(0), _fw_version(0), _timeout_ms(SYNC_OPS_TIMEOUT_MS), _dev_addr64(ADDR64_UNASSIGNED),
-    _reset(NULL), _tx_options(0), _hw_reset_cnt(0), _wd_reset_cnt(0), _modem_status_handler(NULL), _modem_status(AtCmdFrame::HwReset), _initializing(true), _node_by_ni_frame_id(0)
+    _reset(reset, 1), _sleep_rq(sleep_rq, 1), _tx_options(0), _hw_reset_cnt(0), _wd_reset_cnt(0), 
+    _modem_status_handler(NULL), _modem_status(AtCmdFrame::HwReset), _initializing(true), _node_by_ni_frame_id(0)
 {
-
-    if (reset != NC) {
-        _reset = new DigitalOut(reset, 1);
-    }
-
     _uart = new RawSerial(tx, rx);
     _uart->baud(baud);
 
@@ -121,9 +117,6 @@ XBee::~XBee()
     if (_uart != NULL) {
         delete _uart;
     }
-    if (_reset != NULL) {
-        delete _reset;
-    }
 }
 
 #include <inttypes.h>
@@ -150,6 +143,9 @@ RadioStatus XBee::init(void)
     if (reset_status != Success) {
         return reset_status;
     }*/
+
+    _sleep_rq = 0; // make sure to wake up node
+    wait_ms(10);
 
     /* Check if radio is in API1 or API2 _mode */
     cmd_resp = get_param("AP", &var32);
@@ -211,14 +207,12 @@ uint64_t XBee::get_addr64() const
 
 RadioStatus XBee::hardware_reset()
 {
-    if (_reset != NULL) {
-        volatile uint16_t * const rst_cnt_p = &_hw_reset_cnt;
-        const uint16_t init_rst_cnt = *rst_cnt_p;
-        *_reset = 0;
-        wait_ms(10);
-        *_reset = 1;
-        return wait_for_module_to_reset(rst_cnt_p, init_rst_cnt);
-    }
+    volatile uint16_t * const rst_cnt_p = &_hw_reset_cnt;
+    const uint16_t init_rst_cnt = *rst_cnt_p;
+    _reset = 0;
+    wait_ms(10);
+    _reset = 1;
+    return wait_for_module_to_reset(rst_cnt_p, init_rst_cnt);
 
     return Failure;
 }
@@ -486,6 +480,7 @@ void XBee::uart_read_cb(void)
                 break;
         }
     }
+
     /* TODO, signal the thread processing incoming frames */
 }
 
@@ -505,6 +500,23 @@ void XBee::set_timeout(uint16_t timeout_ms)
 uint16_t XBee::get_timeout(void) const
 {
     return _timeout_ms;
+}
+
+void XBee::request_sleep()
+{
+    _sleep_rq = 1;
+}
+
+void XBee::request_wakeup()
+{
+    _sleep_rq = 0;
+}
+
+void XBee::set_DIO(const char* const line, bool value)
+{
+    uint32_t var32 = (value == false ? DigitalOutLow : DigitalOutHigh);
+
+    AtCmdFrame::AtCmdResp cmd_resp = set_param(line, var32);
 }
 
 ApiFrame * XBee::get_this_api_frame(uint8_t id, ApiFrame::ApiFrameType type,

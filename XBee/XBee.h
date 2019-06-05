@@ -14,7 +14,7 @@
 #define __DIGI_RADIO_H_
 
 #include <stdint.h>
-#include "config.h"
+#include "mbed_config.h"
 #include "Utils/Debug.h"
 #include "Frames/AtCmdFrame.h"
 #include "FrameHandlers/FrameHandler.h"
@@ -145,7 +145,7 @@ class XBee
          * @param baud the baudrate for the UART that will interface the XBee module. Note that the module has to be already configured
          * to this baud rate (ATBD parameter). By default it is configured to 9600 bps
          * */
-        XBee(PinName tx, PinName rx, PinName reset = NC, PinName rts = NC, PinName cts = NC, int baud = 9600);
+        XBee(PinName tx = MBED_CONF_XBEE_RADIO_TX, PinName rx = MBED_CONF_XBEE_RADIO_RX, PinName reset = MBED_CONF_XBEE_RADIO_RESET, PinName rts = MBED_CONF_XBEE_RADIO_RTS, PinName cts = MBED_CONF_XBEE_RADIO_CTS, PinName sleep_rq = MBED_CONF_XBEE_RADIO_SLEEP_REQ, int baud = MBED_CONF_XBEE_BAUDRATE);
 
         XBee(const XBee& other); /* Intentionally not implemented */
         /** Class destructor */
@@ -345,7 +345,7 @@ class XBee
          *     Success if the operation was successful,
          *     Failure otherwise
          */
-         RadioStatus config_node_discovery(uint16_t backoff_ms, uint8_t options = 0);
+        RadioStatus config_node_discovery(uint16_t backoff_ms, uint8_t options = 0);
 
          /** get_config_node_discovery - reads the configuration of the node discovery
           * settings
@@ -356,7 +356,7 @@ class XBee
           *     Success if the operation was successful,
           *     Failure otherwise
           */
-         RadioStatus get_config_node_discovery(uint16_t * const backoff_ms, uint8_t * const options);
+        RadioStatus get_config_node_discovery(uint16_t * const backoff_ms, uint8_t * const options);
 
         /** set_timeout - sets the timeout in ms, used by sync methods
          *
@@ -370,6 +370,21 @@ class XBee
          *  @returns the configured timeout value in ms
          */
         uint16_t get_timeout() const;
+
+        /** request_sleep - request the device to enter hibernate
+         * 
+         */
+        void request_sleep();
+
+        /** request_wakeup - request the device to wake up from hibernate
+         * 
+         */ 
+        void request_wakeup();
+
+        /** set_DIO - set digital IO pin
+         * 
+         */ 
+        void set_DIO(const char* const line, bool value);
 
         /* ... */
 
@@ -670,7 +685,10 @@ class XBee
         RawSerial   *_uart;
 
         /** IO connected to the radio reset line */
-        DigitalOut  *_reset;
+        DigitalOut  _reset;
+
+        // IO connected to the radio sleep request line
+        DigitalOut _sleep_rq;
 
         /** Transmit options byte */
         uint8_t     _tx_options;

@@ -13,7 +13,7 @@
 #if !defined(__FRAME_BUFFER_H_)
 #define __FRAME_BUFFER_H_
 
-#include "config.h"
+//#include "mbed_config.h"
 #include "mbed.h"
 #include "Frames/ApiFrame.h"
 

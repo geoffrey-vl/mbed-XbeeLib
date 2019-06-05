@@ -16,7 +16,7 @@
 #ifndef __XBEE_H_
 #define __XBEE_H_
 
-#define XB_LIBRARY_VERSION          0x01010200U
+#define XB_LIBRARY_VERSION          0x01010300U
 #define XB_MAJOR_VERSION            ((XB_LIBRARY_VERSION >> 24) & 0xFFU)
 #define XB_MINOR_VERSION            ((XB_LIBRARY_VERSION >> 16) & 0xFFU)
 #define XB_PATCH_LEVEL              ((XB_LIBRARY_VERSION >> 8) & 0xFFU)
